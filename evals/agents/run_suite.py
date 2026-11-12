@@ -159,6 +159,8 @@ def main() -> int:
             print("not promoting: --promote needs a full run (no filters, holdouts included)", file=sys.stderr)
         elif gate.returncode != 0:
             print("not promoting: gate failed", file=sys.stderr)
+        elif diff_rc != 0:
+            print("not promoting: regression against the baseline (eval_diff --fail-on-regression)", file=sys.stderr)
         else:
             shutil.copy2(report, baseline)
             print(f"promoted {report} -> {baseline}")

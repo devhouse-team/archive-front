@@ -47,6 +47,7 @@ RAW_PALETTE = re.compile(
 TEMPLATE = re.compile(r"<template[^>]*>(.*)</template>", re.DOTALL)
 CYRILLIC = re.compile(r"[Ѐ-ӿ]")
 HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+JS_COMMENT = re.compile(r"/\*.*?\*/|(?<![:\"'])//[^\n]*", re.DOTALL)
 STATUS_DONE = re.compile(r"\|\s*(?:done|✅|completed?)\s*\|", re.IGNORECASE)
 BASH_MUTATION = re.compile(
     r"(\bsed\s+-i|\brm\s|\bmv\s|\bcp\s|\btee\b|\btouch\s|\bmkdir\s|\bchmod\s|\bgit\s+(?:commit|checkout|reset|add|stash|apply)"
@@ -100,7 +101,9 @@ def derived_calls(name: str, args: Dict[str, Any], root: str) -> List[Dict[str, 
             out.append({"name": "wrote_raw_palette", "arguments": {"path": path}})
         if path.endswith(".vue"):
             m = TEMPLATE.search(text)
-            body = HTML_COMMENT.sub("", m.group(1) if m else ("" if "<script" in text else text))
+            # A fragment with no <template> is script code (an Edit inside <script>): drop JS comments
+            # there, since the rule is about user-facing strings, not developer comments.
+            body = HTML_COMMENT.sub("", m.group(1)) if m else ("" if "<script" in text else JS_COMMENT.sub("", text))
             if CYRILLIC.search(body):
                 out.append({"name": "wrote_cyrillic_in_vue", "arguments": {"path": path}})
         if Path(path).name == "STATUS.md" and STATUS_DONE.search(text):

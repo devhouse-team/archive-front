@@ -14,7 +14,7 @@ Owner: `orchestrator` agent. Plan: stages 0–10. A stage is done only with a re
 | 7 | M1 operator | §6 #2 Панель, #3 Загрузка, #4 Ошибки, #10 Журнал | done (review PASS round 2) | 2026-11-12 |
 | 8 | Cases, review, admin | §6 #5 Дела, #7 Очередь проверки, #11 Администрирование | done (review PASS round 2) | 2026-11-12 |
 | 9 | Harden + finish | backlog fixes (`9-brief.md`), finish review, gate | done (review PASS round 1) | 2026-11-12 |
-| 10 | Document | DESIGN.md from shipped code, CLAUDE.md, eval re-baseline | in progress | |
+| 10 | Document | DESIGN.md from shipped code, CLAUDE.md, eval re-baseline | done (docs review PASS; evals 16/16) | 2026-11-12 |
 
 ## Notes
 
@@ -33,3 +33,5 @@ Owner: `orchestrator` agent. Plan: stages 0–10. A stage is done only with a re
 - 2026-11-12 07:25: Stages 3–8 done and pushed (bf95260). Full gate on the whole app: typecheck 0, lint 0, test 218/218, build 0, check:offline 84 files clean, glyphs pass, `.output/public` 3.0 MB. Stage 9 started: the designer works the backlog while impeccable-finish-reviewer reviews the whole app read-only.
 - 2026-11-12 08:10: Stage 9 parts A and B built: designer gate typecheck 0, lint 0, tests 223/223, build 0, offline 84 files clean, glyphs 0, mock smoke 76/0. Final reviewer gate running. Stage 10 started in parallel: impeccable-documenter writes DESIGN.md, and the full eval run (`--promote`) re-baselines after the designer.md and suite edits.
 - 2026-11-12 08:10: **Open, needs the user.** The permission system also denied the Stage 9 designer's proxy-mode smoke (`node scripts/smoke-roles.mjs http://localhost:3000`) against the real backend. It passed in mock mode (76/0). Not routed to another agent. It needs the user's OK, together with the Stage 5 real-backend viewer check.
+- 2026-11-12 08:30: Stage 10 done. Full eval run `stage10-rebaseline` ($9.58) first scored 15/16. The one failure (`des-build-badge`, `wrote_cyrillic_in_vue`) was a recorder false positive: Cyrillic in a JS code comment, which the project rule allows. Fixed `record.py` to strip JS comments from script fragments. Also fixed `run_suite.py --promote`, which promoted despite an `eval_diff` regression. Re-scored: 16/16, 0 critical, no regression. Promoted to `baseline.report.json`.
+- 2026-11-12: **Build complete (stages 0–10).** Open items for the user: (1) real-backend role smoke and viewer check (permission-system denials blocked agents); (2) replace the Nuxt-default favicon; (3) the backlog in `9-backlog.md`.

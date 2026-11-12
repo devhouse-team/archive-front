@@ -27,6 +27,10 @@ const api = useApi()
 const viewport = useTemplateRef<HTMLElement>('viewport')
 const stage = useTemplateRef<HTMLElement>('stage')
 const PAD = 16
+/** Overlay boxes sit this many screen px outside the glyph box, so strokes frame the word instead of cutting it. */
+const BOX_OUTSET = 3
+/** The locator pin sits just past the selected box's bottom-end corner, clear of the word. */
+const PIN_GAP = 2
 
 const zoom = ref<'fit' | number>('fit')
 const showBoxes = ref(false)
@@ -70,7 +74,7 @@ const boxes = computed<BoxView[]>(() => {
     const corrected = w.corrected === 1 || isEdited(w)
     const low = !corrected && w.conf < props.threshold
     if (!selected && !hit && !corrected && !low && !showBoxes.value) continue
-    const b = scaleBox(w, s)
+    const b = outset(scaleBox(w, s))
     out.push({
       id: w.id,
       style: { left: `${b.left}px`, top: `${b.top}px`, width: `${b.width}px`, height: `${b.height}px` },
@@ -78,7 +82,8 @@ const boxes = computed<BoxView[]>(() => {
         'scan-box',
         low ? 'scan-box--low' : '',
         hit ? 'scan-box--hit' : '',
-        (selected || hit) ? 'scan-box--strong' : '',
+        corrected && !selected && !hit ? 'scan-box--corrected' : '',
+        selected ? 'scan-box--selected' : '',
       ],
       title: `${props.drafts.get(w.id) ?? w.text} · ${confShown(w.conf, props.threshold)} %`,
     })
@@ -86,9 +91,13 @@ const boxes = computed<BoxView[]>(() => {
   return out
 })
 
+function outset(b: { left: number, top: number, width: number, height: number }) {
+  return { left: b.left - BOX_OUTSET, top: b.top - BOX_OUTSET, width: b.width + BOX_OUTSET * 2, height: b.height + BOX_OUTSET * 2 }
+}
+
 const selectedBox = computed(() => {
   const w = props.words.find(x => x.id === props.selectedId)
-  return w && scale.value ? scaleBox(w, scale.value) : null
+  return w && scale.value ? outset(scaleBox(w, scale.value)) : null
 })
 
 /**
@@ -303,7 +312,7 @@ defineExpose({ viewport, boxEl, revealSelected })
           <span
             v-if="selectedBox"
             class="locator-pin"
-            :style="{ left: `${selectedBox.left + selectedBox.width}px`, top: `${selectedBox.top + selectedBox.height / 2}px` }"
+            :style="{ left: `${selectedBox.left + selectedBox.width + PIN_GAP}px`, top: `${selectedBox.top + selectedBox.height + PIN_GAP}px` }"
           />
         </div>
       </div>
@@ -312,27 +321,64 @@ defineExpose({ viewport, boxEl, revealSelected })
 </template>
 
 <style scoped>
-/* Spec 2 §Scan overlays: every stroke is two-tone (1 px white halo + ink core) at 100% opacity; only fills
-   are translucent. Types differ by fill and stroke style, never by hue alone. */
+/* Spec 2 §Scan overlays. Boxes are outset from the glyphs (BOX_OUTSET) so strokes frame the word and never
+   cross ink. Fills multiply onto the scan, so dark glyphs stay fully dark under any tint and the word stays
+   readable. Types differ by fill and stroke style, never by hue alone. */
 .scan-box {
   position: absolute;
   cursor: pointer;
-  border: 1px solid var(--color-ink);
-  box-shadow: 0 0 0 1px var(--color-halo), inset 0 0 0 1px var(--color-halo);
-  border-radius: 2px;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 55%, transparent);
+  border-radius: 3px;
+  transition: background-color 120ms ease-out, box-shadow 120ms ease-out;
+}
+
+.scan-box:hover {
+  border-color: var(--color-ink);
+  background-color: color-mix(in srgb, var(--color-civic-800) 8%, transparent);
 }
 
 .scan-box--low {
-  border-style: dashed;
-  background-color: color-mix(in srgb, var(--color-lowconf-fill) 55%, transparent);
+  border: 1px dashed var(--color-locator-700);
+  background-color: var(--color-lowconf-fill);
+  mix-blend-mode: multiply;
+}
+
+.scan-box--corrected {
+  border-style: dotted;
 }
 
 .scan-box--hit {
-  background-color: color-mix(in srgb, var(--color-hit) 50%, transparent);
+  border-color: transparent;
+  background-color: var(--color-hit);
+  mix-blend-mode: multiply;
 }
 
-.scan-box--strong {
-  border-width: 2px;
+/* Selected: a soft gold wash under the word plus a crisp ink frame with a white keyline outside it, so the
+   frame holds on dark paper. The wash multiplies, so the word reads through it. */
+.scan-box--selected {
+  border: 2px solid var(--color-ink);
+  background-color: transparent;
+  box-shadow: 0 0 0 1.5px var(--color-halo), 0 2px 6px color-mix(in srgb, var(--color-ink) 25%, transparent);
+  mix-blend-mode: normal;
+}
+
+.scan-box--selected::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 1px;
+  background-color: var(--color-locator-200);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.scan-box--selected.scan-box--hit::before {
+  background-color: var(--color-hit);
+}
+
+.scan-box--selected.scan-box--hit,
+.scan-box--selected.scan-box--low {
+  border-style: solid;
 }
 
 /* The shared line grid: the selected line's band (same token as the text pane) and its number on the
@@ -367,9 +413,9 @@ defineExpose({ viewport, boxEl, revealSelected })
 /* «You are here»: gold with an ink ring and a white keyline so it holds on dark paper too. */
 .locator-pin {
   position: absolute;
-  width: 14px;
-  height: 14px;
-  margin: -7px 0 0 -7px;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
   border-radius: 9999px;
   background: var(--color-locator);
   box-shadow: 0 0 0 1.5px var(--color-ink), 0 0 0 3px var(--color-halo);

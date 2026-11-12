@@ -81,7 +81,7 @@ const size = computed(() => Math.max(3, value.value.length + 1))
     :tabindex="tabbable ? 0 : -1"
     :aria-current="selected ? 'true' : undefined"
     :class="[
-      'viewer-word rounded-sm px-0.5 text-start text-default',
+      'viewer-word -mx-0.5 rounded-sm px-1 text-start text-default',
       low && 'viewer-word--low',
       hit && 'bg-hit',
       corrected && 'viewer-word--corrected',
@@ -122,8 +122,25 @@ const size = computed(() => Math.max(3, value.value.length + 1))
   background-color: var(--color-hit);
 }
 
-.viewer-word--selected {
-  box-shadow: 0 0 0 2px var(--color-ink);
+/* Selected: the gold of the scan's locator, framed inside the word's own box so the ring never runs into
+   the neighbouring words. A hit or low fill keeps its colour; the frame alone marks the selection. */
+.viewer-word--selected,
+.viewer-word--selected:hover {
+  background-color: var(--color-locator-100);
+  box-shadow: inset 0 0 0 1.5px var(--color-ink);
+}
+
+.viewer-word--selected.bg-hit,
+.viewer-word--selected.viewer-word--low {
+  box-shadow: inset 0 0 0 1.5px var(--color-ink);
+}
+
+.viewer-word--selected.bg-hit {
+  background-color: var(--color-hit);
+}
+
+.viewer-word--selected.viewer-word--low {
+  background-color: var(--color-lowconf-fill);
 }
 
 .viewer-word:focus-visible {

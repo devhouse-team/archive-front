@@ -348,9 +348,10 @@ function updateLeader() {
   const origin = w.getBoundingClientRect()
   const scanRight = svr.right - origin.left
   const textLeft = tRoot.getBoundingClientRect().left - origin.left
-  const x1 = Math.min(br.right - origin.left, scanRight - 6)
-  const y1 = br.top + br.height / 2 - origin.top
-  const yUnder = Math.min(br.bottom - origin.top + 4, svr.bottom - origin.top - 2)
+  // The pin sits 2 px past the box's bottom-end corner (ViewerScanPane PIN_GAP); the leader leaves from it.
+  const x1 = Math.min(br.right - origin.left + 2, scanRight - 6)
+  const y1 = Math.min(br.bottom - origin.top + 2, svr.bottom - origin.top - 2)
+  const yUnder = y1
   leader.value = {
     x1,
     y1,

@@ -91,7 +91,7 @@ async function confirmDelete() {
 </script>
 
 <template>
-  <div class="mx-auto flex w-full max-w-5xl flex-col gap-4">
+  <div class="mx-auto flex w-full max-w-[1440px] flex-col gap-4">
     <h1 class="sr-only">
       {{ t('pages.collections') }}
     </h1>

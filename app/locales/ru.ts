@@ -20,6 +20,13 @@ const ru = {
     /** Document title: «Поиск — Цифровой архив Астаны». */
     titleTemplate: '{title} — {app}',
     skipToContent: 'К содержимому',
+    /** Rail footer when the instance runs on demo data (runtimeConfig.public.demoAccounts). */
+    demoData: 'Демо-данные',
+  },
+
+  /** Counted nouns, read through plural() in ~/utils/format: one (1, 21), few (2–4), many (0, 5–20). */
+  plural: {
+    leaf: { one: '{n} лист', few: '{n} листа', many: '{n} листов' },
   },
 
   roles: {

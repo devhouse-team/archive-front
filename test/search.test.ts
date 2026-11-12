@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import type { Pinia } from 'pinia'
@@ -9,10 +9,11 @@ import SearchRestrictedBadge from '~/components/search/SearchRestrictedBadge.vue
 import SearchPage from '~/pages/search.vue'
 import { useAuthStore } from '~/stores/auth'
 import { useCollectionsStore } from '~/stores/collections'
+import { plural, pluralForm } from '~/utils/format'
 import type { Role, User } from '~/types/api'
 import { ROLES } from '~/types/api'
 import {
-  activeFilterCount, pageLink, parseSearchQuery, pluralForm, stateFromStored, storedFilters, toSearchParams, toSearchQuery,
+  activeFilterCount, pageLink, parseSearchQuery, stateFromStored, storedFilters, toSearchParams, toSearchQuery,
 } from '~/composables/useSearchQuery'
 
 function useAppPinia() {
@@ -70,6 +71,7 @@ describe('search URL ⇄ state', () => {
 
   it('picks Russian plural forms', () => {
     expect([1, 2, 5, 11, 21, 22, 25, 112].map(pluralForm)).toEqual(['one', 'few', 'many', 'many', 'one', 'few', 'many', 'many'])
+    expect([1, 3, 5, 21].map(n => plural('plural.leaf', n))).toEqual(['1 лист', '3 листа', '5 листов', '21 лист'])
   })
 })
 
@@ -181,14 +183,19 @@ describe('restricted badge', () => {
 describe('add to collection', () => {
   beforeEach(useAppPinia)
 
-  it('is idempotent: a second add of the same page posts nothing', async () => {
+  it('is idempotent: a second add of the same page posts nothing; counts come from the server', async () => {
     useAuthStore().setUser(user('reader', 4))
     let posts = 0
-    registerEndpoint('/api/collections', () => [{ id: 11, user_id: 4, name: 'Справка №1', created_at: '2026-11-12 00:00:00', n: 0, updated_at: null }])
+    const pages = new Set<number>([9])
+    registerEndpoint('/api/collections', () => [{ id: 11, user_id: 4, name: 'Справка №1', created_at: '2026-11-12 00:00:00', n: pages.size, updated_at: null }])
     registerEndpoint('/api/collections/11/items', {
       method: 'POST',
-      handler: () => {
+      handler: async (event) => {
         posts++
+        // @ts-expect-error the alias is resolved by the test environment and has no type declaration
+        const { readBody } = await import('#nuxt-test-utils/h3')
+        const body = await readBody(event) as { page_id: number }
+        pages.add(body.page_id)
         return { ok: true }
       },
     })
@@ -197,13 +204,19 @@ describe('add to collection', () => {
     expect(store.list).toHaveLength(1)
     expect(await store.addPage(11, 6)).toBe('added')
     expect(store.has(11, 6)).toBe(true)
-    expect(store.list[0]!.n).toBe(1)
+    expect(store.list[0]!.n).toBe(2)
     expect(await store.addPage(11, 6)).toBe('already')
     expect(posts).toBe(1)
-    expect(store.list[0]!.n).toBe(1)
-    // A different page still posts.
-    expect(await store.addPage(11, 7)).toBe('added')
+    expect(store.list[0]!.n).toBe(2)
+    // A page already on the server (added elsewhere): posted once, reported as «уже есть», remembered.
+    expect(await store.addPage(11, 9)).toBe('already')
+    expect(store.has(11, 9)).toBe(true)
     expect(posts).toBe(2)
+    // A removal on the collection screen takes the count from the server again.
+    pages.delete(6)
+    store.forgetPage(11, 6)
+    await vi.waitFor(() => expect(store.list[0]!.n).toBe(1))
+    expect(store.has(11, 6)).toBe(false)
   })
 
   it('forgets another user\'s collections after a re-login in the same tab', async () => {

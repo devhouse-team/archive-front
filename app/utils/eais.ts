@@ -45,9 +45,11 @@ function workerStatus(w: WorkerHeartbeat): string {
 /**
  * @param health the last /api/health answer (null before the first one)
  * @param retryIn seconds to the next automatic retry, ticking locally between polls (health store)
+ * @param stale the last poll failed: the cached answer is no longer evidence, so the view says «нет данных»
+ *   instead of repeating «ЕАИС на связи» from old data (PRODUCT principle 5)
  */
-export function eaisView(health: Health | null, retryIn: number | null): EaisView {
-  if (!health) {
+export function eaisView(health: Health | null, retryIn: number | null, stale = false): EaisView {
+  if (!health || stale) {
     return { state: 'unknown', label: translate('eais.unknown'), retry: null, retryShort: null, workers: [], diskLow: false, problems: 0 }
   }
   const workers = WORKER_IDS

@@ -4,9 +4,11 @@ import type { CollectionSummary } from '~/types/api'
 import { useAuthStore } from '~/stores/auth'
 
 /**
- * The user's подборки for the «В подборку» popover on /search (Stage 6). The list loads once per session
- * and refreshes after create/delete. Adding a page is idempotent on the server (handoff §5.5); the store also
- * remembers which pages it has put into which collection, so a second click neither posts nor toasts twice.
+ * The user's подборки for the «В подборку» popover on /search (Stage 6). The popover reloads the list from the
+ * server each time it opens, and the store reloads it after every add, so `n` follows the server (other tabs,
+ * removals) instead of local arithmetic. Adding a page is idempotent on the server (handoff §5.5): when `n` does
+ * not grow, the page was already there and the caller says so. Known pages are remembered per collection, so a
+ * second click neither posts nor toasts twice.
  */
 export const useCollectionsStore = defineStore('collections', () => {
   const list = ref<CollectionSummary[]>([])
@@ -52,15 +54,23 @@ export const useCollectionsStore = defineStore('collections', () => {
     return added.value[collectionId]?.includes(pageId) ?? false
   }
 
-  /** Returns 'added' on success, 'already' when this tab added it before (no request), or throws ApiError. */
+  function remember(collectionId: number, pageId: number) {
+    if (!has(collectionId, pageId)) added.value = { ...added.value, [collectionId]: [...(added.value[collectionId] ?? []), pageId] }
+  }
+
+  /**
+   * Returns 'added' on success, 'already' when the page was in the collection before (known here, or the
+   * server's count did not grow), or throws ApiError.
+   */
   async function addPage(collectionId: number, pageId: number): Promise<'added' | 'already'> {
     checkOwner()
     if (has(collectionId, pageId)) return 'already'
+    const before = list.value.find(c => c.id === collectionId)?.n
     await useApi().collections.addItem(collectionId, pageId)
-    added.value = { ...added.value, [collectionId]: [...(added.value[collectionId] ?? []), pageId] }
-    const row = list.value.find(c => c.id === collectionId)
-    if (row) row.n += 1
-    return 'added'
+    remember(collectionId, pageId)
+    await load(true)
+    const after = list.value.find(c => c.id === collectionId)?.n
+    return before !== undefined && after !== undefined && after === before ? 'already' : 'added'
   }
 
   async function create(name: string): Promise<CollectionSummary> {
@@ -77,9 +87,11 @@ export const useCollectionsStore = defineStore('collections', () => {
     added.value = rest
   }
 
+  /** A page was removed on the collection screen: drop it here and take the count from the server again. */
   function forgetPage(collectionId: number, pageId: number) {
     const pages = added.value[collectionId]
     if (pages) added.value = { ...added.value, [collectionId]: pages.filter(p => p !== pageId) }
+    if (loaded.value) void load(true)
   }
 
   function reset() {

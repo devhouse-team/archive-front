@@ -2,9 +2,10 @@
 import type { Facets, Fuzzy, SearchResponse, SearchSort } from '~/types/api'
 import type { SearchFilterState, SearchState } from '~/composables/useSearchQuery'
 import {
-  activeFilterCount, parseSearchQuery, pluralForm, SEARCH_PAGE_SIZE, toSearchParams, toSearchQuery,
+  activeFilterCount, parseSearchQuery, SEARCH_PAGE_SIZE, toSearchParams, toSearchQuery,
 } from '~/composables/useSearchQuery'
 import { ACCESS } from '~/utils/access'
+import { plural } from '~/utils/format'
 
 definePageMeta({ roles: ACCESS.search, title: 'pages.search' })
 
@@ -97,21 +98,25 @@ async function run() {
   }
   loading.value = true
   failed.value = false
+  let redirecting = false
   try {
     const res = await api.request<SearchResponse>('/api/search', { query: { ...toSearchParams(current) }, errorMode: 'background' })
     if (mine !== seq) return
-    response.value = res
     // A stale ?page= past the end (bookmark, results changed): go back to page 1 instead of an empty list.
+    // Stay in the loading state until page 1 answers, so the empty past-end page never flashes.
     if (!res.error && res.items.length === 0 && res.total > 0 && current.page > 1) {
+      redirecting = true
       void router.replace({ path: '/search', query: toSearchQuery({ ...current, page: 1 }) })
+      return
     }
+    response.value = res
   }
   catch {
     if (mine !== seq) return
     failed.value = true
   }
   finally {
-    if (mine === seq) loading.value = false
+    if (mine === seq && !redirecting) loading.value = false
   }
 }
 
@@ -127,8 +132,8 @@ const pageCount = computed(() => response.value?.pages ?? Math.ceil((response.va
 const summary = computed(() => {
   const r = response.value
   if (!r || r.error || r.total === 0) return ''
-  const cases = t(`search.plural.case.${pluralForm(r.total)}`, { n: r.total })
-  const pages = t(`search.plural.page.${pluralForm(r.pages_total)}`, { n: r.pages_total })
+  const cases = plural('search.plural.case', r.total)
+  const pages = plural('search.plural.page', r.pages_total)
   return t('search.summary', { cases, pages })
 })
 /** Empty and out-of-range answers (no items) — told apart by total. */
@@ -464,11 +469,12 @@ const radioUi = {
             :class="loading && 'opacity-60'"
           >
             <li
-              v-for="item in items"
+              v-for="(item, i) in items"
               :key="item.delo_id"
             >
               <SearchResult
                 :item="item"
+                :primary="i === 0 && state.page === 1"
                 :q="state.q"
                 :fuzzy="state.fuzzy"
               />

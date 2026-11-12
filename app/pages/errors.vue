@@ -86,7 +86,8 @@ const columns = computed<TableColumn<M1File>[]>(() => [
   { accessorKey: 'name', header: t('errors_screen.cols.name'), meta: { class: { td: 'whitespace-normal min-w-64' } } },
   { id: 'shifr', header: t('errors_screen.cols.shifr') },
   { accessorKey: 'updated_at', header: t('errors_screen.cols.time') },
-  { id: 'actions', header: () => h('span', { class: 'sr-only' }, t('errors_screen.cols.actions')) },
+  // Fixed width and order: «Исправить шифр» always in the first slot, «Отправить повторно» (when allowed) after it.
+  { id: 'actions', header: () => h('span', { class: 'sr-only' }, t('errors_screen.cols.actions')), meta: { class: { th: 'w-[25rem]', td: 'w-[25rem]' } } },
 ])
 
 const tableUi = {
@@ -184,9 +185,12 @@ const tableUi = {
         <span class="text-muted tabular-nums">{{ formatTimestamp(row.original.updated_at) }}</span>
       </template>
       <template #actions-cell="{ row }">
-        <div class="flex flex-wrap justify-end gap-2">
+        <!-- Solid on the first row only (the next file to fix, as on /review); outline on the rest. -->
+        <div class="flex flex-wrap items-center justify-start gap-2">
           <UButton
             icon="i-lucide-pencil"
+            :color="row.index === 0 ? 'primary' : 'neutral'"
+            :variant="row.index === 0 ? 'solid' : 'outline'"
             :label="t('errors_screen.fix')"
             :data-fix-id="row.original.id"
             :aria-label="t('errors_screen.fixFor', { name: row.original.name })"

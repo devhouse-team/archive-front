@@ -1,3 +1,6 @@
+import type { MessageKey } from '~/composables/useT'
+import { translate } from '~/composables/useT'
+
 /** Seconds as m:ss (retry countdowns, elapsed OCR time). */
 export function formatDuration(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds))
@@ -41,4 +44,35 @@ export function formatTimestamp(ts: string, today: string = localDate()): string
 export function localDate(now: Date = new Date()): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+}
+
+export type PluralForm = 'one' | 'few' | 'many'
+
+/** Russian plural form for n: one (1, 21), few (2–4, 22–24), many (0, 5–20, 25…). */
+export function pluralForm(n: number): PluralForm {
+  const abs = Math.abs(Math.trunc(n))
+  const mod10 = abs % 10
+  const mod100 = abs % 100
+  if (mod10 === 1 && mod100 !== 11) return 'one'
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'few'
+  return 'many'
+}
+
+/** Locale paths whose node holds one/few/many forms, e.g. 'plural.leaf' or 'search.plural.case'. */
+export type PluralKey = MessageKey extends infer K ? K extends `${infer P}.one` ? P : never : never
+
+/**
+ * The one way to say «n лист / листа / листов»: `key` names a locale node with one/few/many strings, each
+ * carrying {n}. plural('plural.leaf', 3) → «3 листа».
+ */
+export function plural(key: PluralKey, n: number): string {
+  return translate(`${key}.${pluralForm(n)}` as MessageKey, { n })
+}
+
+/**
+ * Journal text may carry inbox paths («ws1/1/1/12/blank.png»). Screens show file base names only, as /upload
+ * does: a path ending in a file name keeps only the file name («1/2» and other slashes stay).
+ */
+export function baseNames(text: string): string {
+  return text.replace(/(?:[^\s/(«"]+\/)+(?=[^\s/]+\.[a-z0-9]{2,5}(?![^\s,;:)»]))/gi, '')
 }

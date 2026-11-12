@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import type { Health } from '~/types/api'
 import type { ApiError } from '~/utils/api-error'
-import { isApiError } from '~/utils/api-error'
+import { isApiError, toApiError } from '~/utils/api-error'
 import { secondsUntil } from '~/utils/format'
 import { useAuthStore } from '~/stores/auth'
 
@@ -17,7 +17,10 @@ export const useHealthStore = defineStore('health', () => {
   /** Ticks every second while polling so the countdown moves between fetches. */
   const now = ref(Date.now())
 
-  const eaisOnline = computed<boolean | null>(() => data.value?.eais_online ?? null)
+  /** The last poll failed: `data` is the last good answer and must not be shown as the current state. */
+  const stale = computed(() => error.value !== null)
+  /** null while unknown: before the first answer or while the last poll failed. */
+  const eaisOnline = computed<boolean | null>(() => stale.value ? null : data.value?.eais_online ?? null)
   const retryIn = computed<number | null>(() =>
     retryDeadline.value === null ? null : secondsUntil(retryDeadline.value, now.value))
 
@@ -32,7 +35,7 @@ export const useHealthStore = defineStore('health', () => {
       retryDeadline.value = health.next_retry_in === null ? null : now.value + health.next_retry_in * 1000
     }
     catch (e) {
-      if (isApiError(e)) error.value = e
+      error.value = isApiError(e) ? e : toApiError(null, null)
       throw e
     }
   }
@@ -52,5 +55,5 @@ export const useHealthStore = defineStore('health', () => {
     }, 1000, { immediate: false })
   }
 
-  return { data, error, now, retryDeadline, eaisOnline, retryIn, refresh, reset, startPolling }
+  return { data, error, stale, now, retryDeadline, eaisOnline, retryIn, refresh, reset, startPolling }
 })

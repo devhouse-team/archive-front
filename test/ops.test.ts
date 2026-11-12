@@ -211,3 +211,12 @@ describe('a reader cannot reach the operator screens', () => {
     expect(pageError.value).toBeNull()
   })
 })
+
+describe('journal file names', () => {
+  it('shows the base name of inbox paths and leaves other slashes alone', async () => {
+    const { baseNames } = await import('~/utils/format')
+    expect(baseNames('ws1/1/1/12/blank.png')).toBe('blank.png')
+    expect(baseNames('Файл ws1/1/1/12/blank.png отклонён (ws2/a/b.tif)')).toBe('Файл blank.png отклонён (b.tif)')
+    expect(baseNames('лист 1/2')).toBe('лист 1/2')
+  })
+})

@@ -33,6 +33,43 @@ void load()
 const roleItems = computed(() => ROLES.map((r: Role) => ({ value: r, label: t(`roles.${r}`) })))
 const usernames = computed(() => rows.value.map(u => u.username))
 
+// Demoting an admin takes away user management and the ЕАИС switch, so it asks first; other changes save at once.
+const demotion = ref<{ user: AdminUser, role: Role } | null>(null)
+const demotionOpen = computed({
+  get: () => demotion.value !== null,
+  set: (open: boolean) => {
+    if (!open) demotion.value = null
+  },
+})
+const demotionText = ref('')
+const demoteCancel = useTemplateRef<{ $el?: HTMLElement }>('demoteCancel')
+const focusCancel = {
+  onOpenAutoFocus: (e: Event) => {
+    const el = demoteCancel.value?.$el
+    if (el instanceof HTMLElement) {
+      e.preventDefault()
+      el.focus()
+    }
+  },
+}
+
+function requestRole(user: AdminUser, role: Role) {
+  if (role === user.role || savingRole.value !== null) return
+  if (user.role === 'admin') {
+    demotion.value = { user, role }
+    // Kept after close, so the text does not go blank during the closing animation.
+    demotionText.value = t('admin.users.demoteBody', { username: user.username, role: t(`roles.${role}`) })
+    return
+  }
+  void changeRole(user, role)
+}
+
+async function confirmDemotion() {
+  const d = demotion.value
+  demotion.value = null
+  if (d) await changeRole(d.user, d.role)
+}
+
 async function changeRole(user: AdminUser, role: Role) {
   if (role === user.role || savingRole.value !== null) return
   const before = user.role
@@ -164,7 +201,7 @@ const tableUi = {
           :loading="savingRole === row.original.id"
           :title="row.original.id === auth.me?.id ? t('admin.users.selfRoleHint') : undefined"
           class="w-48"
-          @update:model-value="(v) => changeRole(row.original, v as Role)"
+          @update:model-value="(v) => requestRole(row.original, v as Role)"
         />
       </template>
       <template #actions-cell="{ row }">
@@ -189,5 +226,28 @@ const tableUi = {
       :user="passwordUser"
       @changed="onPasswordChanged"
     />
+    <UModal
+      v-model:open="demotionOpen"
+      :title="t('admin.users.demoteTitle')"
+      :description="demotionText"
+      :ui="{ footer: 'justify-end' }"
+      :content="focusCancel"
+    >
+      <template #footer>
+        <UButton
+          ref="demoteCancel"
+          color="neutral"
+          variant="outline"
+          :label="t('admin.users.demoteCancel')"
+          @click="demotionOpen = false"
+        />
+        <UButton
+          color="error"
+          icon="i-lucide-user-minus"
+          :label="t('admin.users.demoteConfirm')"
+          @click="confirmDemotion"
+        />
+      </template>
+    </UModal>
   </section>
 </template>

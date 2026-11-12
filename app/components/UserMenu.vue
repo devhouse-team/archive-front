@@ -47,7 +47,6 @@ const items = computed<DropdownMenuItem[][]>(() => [
       color="neutral"
       variant="ghost"
       :class="['min-w-0 gap-2 ps-1.5', headerButtonClass]"
-      :title="t('auth.userMenu')"
     >
       <span
         class="grid size-7 shrink-0 place-items-center rounded-full bg-default text-xs font-semibold text-secondary"

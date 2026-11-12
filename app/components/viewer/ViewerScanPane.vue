@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Word } from '~/types/api'
-import { confPercent, displayScale, scaleBox, stepZoom } from '~/composables/useViewer'
+import { confPercent, confShown, displayScale, scaleBox, stepZoom } from '~/composables/useViewer'
 
 // The scan with word overlays (spec 2 §Scan overlays). Boxes are scaled by displayedWidth / width (handoff §4)
 // and recomputed on resize and zoom. Overlays are pointer targets only; the keyboard path is the text pane.
@@ -80,7 +80,7 @@ const boxes = computed<BoxView[]>(() => {
         hit ? 'scan-box--hit' : '',
         (selected || hit) ? 'scan-box--strong' : '',
       ],
-      title: `${props.drafts.get(w.id) ?? w.text} · ${confPercent(Math.floor(w.conf))} %`,
+      title: `${props.drafts.get(w.id) ?? w.text} · ${confShown(w.conf, props.threshold)} %`,
     })
   }
   return out
@@ -91,23 +91,68 @@ const selectedBox = computed(() => {
   return w && scale.value ? scaleBox(w, scale.value) : null
 })
 
-/** Scroll the scan so the selected box is in view (centred when it was out of view). */
+/**
+ * The shared line grid (spec: FIRST VIEWPORT): the selected word's line drawn as a band across the scan at that
+ * line's y-range, numbered at the scan's start edge like the text pane's gutter.
+ */
+const selectedLine = computed(() => {
+  const s = scale.value
+  const sel = props.words.find(x => x.id === props.selectedId)
+  if (!sel || !s) return null
+  let top = Infinity
+  let bottom = -Infinity
+  for (const w of props.words) {
+    if (w.line !== sel.line) continue
+    top = Math.min(top, w.y)
+    bottom = Math.max(bottom, w.y + w.h)
+  }
+  if (!Number.isFinite(top)) return null
+  const pad = 3
+  return { n: sel.line + 1, top: Math.max(0, top * s - pad), height: (bottom - top) * s + pad * 2 }
+})
+
+/** The nearest scrolling ancestor of the scan (the shell's <main>), or the document. */
+function outerScroller(el: HTMLElement): HTMLElement {
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    const oy = getComputedStyle(p).overflowY
+    if ((oy === 'auto' || oy === 'scroll') && p.scrollHeight > p.clientHeight) return p
+  }
+  return (document.scrollingElement as HTMLElement | null) ?? document.documentElement
+}
+
+/**
+ * Scroll the scan so the selected box is in view (centred when it was out of view). On narrow screens the scan
+ * pane itself can sit below the fold, so the page scroller follows until the box is on screen too.
+ */
 function revealSelected(smooth = true) {
   const b = selectedBox.value
   const vp = viewport.value
-  if (!b || !vp) return
+  // Hidden (the «Текст» pane is showing on a narrow screen): nothing to reveal, and no page scroll.
+  if (!b || !vp || !vp.getClientRects().length) return
   const top = b.top + PAD
   const left = b.left + PAD
   const margin = 40
   const inY = top >= vp.scrollTop + margin && top + b.height <= vp.scrollTop + vp.clientHeight - margin
   const inX = left >= vp.scrollLeft && left + b.width <= vp.scrollLeft + vp.clientWidth
-  if (inY && inX) return
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  vp.scrollTo({
-    top: inY ? vp.scrollTop : Math.max(0, top - vp.clientHeight / 2 + b.height / 2),
-    left: inX ? vp.scrollLeft : Math.max(0, left - vp.clientWidth / 2 + b.width / 2),
-    behavior: smooth && !reduce ? 'smooth' : 'auto',
-  })
+  const behavior: ScrollBehavior = smooth && !reduce ? 'smooth' : 'auto'
+  const targetTop = inY ? vp.scrollTop : Math.max(0, Math.min(top - vp.clientHeight / 2 + b.height / 2, vp.scrollHeight - vp.clientHeight))
+  if (!inY || !inX) {
+    vp.scrollTo({
+      top: targetTop,
+      left: inX ? vp.scrollLeft : Math.max(0, left - vp.clientWidth / 2 + b.width / 2),
+      behavior,
+    })
+  }
+  // Where the box lands on screen once the scan has scrolled; bring it into the page scroller's view.
+  const outer = outerScroller(vp)
+  const outerRect = outer === document.scrollingElement
+    ? { top: 0, bottom: window.innerHeight }
+    : outer.getBoundingClientRect()
+  const boxTop = vp.getBoundingClientRect().top + vp.clientTop + top - targetTop
+  if (boxTop >= outerRect.top + margin && boxTop + b.height <= outerRect.bottom - margin) return
+  const height = outerRect.bottom - outerRect.top
+  outer.scrollBy({ top: boxTop - outerRect.top - height / 3, behavior })
 }
 
 watch(() => props.selectedId, () => nextTick(() => revealSelected()))
@@ -236,6 +281,16 @@ defineExpose({ viewport, boxEl, revealSelected })
           class="absolute inset-0"
           aria-hidden="true"
         >
+          <template v-if="selectedLine">
+            <div
+              class="scan-line-band"
+              :style="{ top: `${selectedLine.top}px`, height: `${selectedLine.height}px` }"
+            />
+            <span
+              class="scan-line-number"
+              :style="{ top: `${selectedLine.top + selectedLine.height / 2}px` }"
+            >{{ selectedLine.n }}</span>
+          </template>
           <div
             v-for="b in boxes"
             :key="b.id"
@@ -278,6 +333,35 @@ defineExpose({ viewport, boxEl, revealSelected })
 
 .scan-box--strong {
   border-width: 2px;
+}
+
+/* The shared line grid: the selected line's band (same token as the text pane) and its number on the
+   scan's start edge, bold civic on a white keyline so it holds on dark paper. */
+.scan-line-band {
+  position: absolute;
+  inset-inline: 0;
+  background: var(--color-line-band);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-civic-800) 22%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--color-civic-800) 22%, transparent);
+  pointer-events: none;
+}
+
+.scan-line-number {
+  position: absolute;
+  inset-inline-start: 4px;
+  transform: translateY(-50%);
+  min-width: 1.5rem;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--color-halo);
+  color: var(--color-civic-800);
+  font-family: var(--font-plate);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-civic-800) 30%, transparent);
+  pointer-events: none;
 }
 
 /* «You are here»: gold with an ink ring and a white keyline so it holds on dark paper too. */

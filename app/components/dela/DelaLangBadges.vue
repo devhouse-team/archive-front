@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Lang } from '~/types/api'
 
-// Script badges RU / KK / KK-лат / KK-араб (handoff §1). Plate colour, soft: they name an attribute, not a status.
+// A case's script badges (handoff §1), each the shared ScriptBadge; «нет» when no page is recognised yet.
 defineProps<{ langs: readonly Lang[] }>()
 const { t } = useT()
 </script>
@@ -11,14 +11,10 @@ const { t } = useT()
     v-if="langs.length"
     class="inline-flex flex-wrap gap-1"
   >
-    <UBadge
+    <ScriptBadge
       v-for="lang in langs"
       :key="lang"
-      color="secondary"
-      variant="soft"
-      size="md"
-      class="font-plate tracking-[0.02em]"
-      :label="t(`langs.${lang}`)"
+      :lang="lang"
     />
   </span>
   <span

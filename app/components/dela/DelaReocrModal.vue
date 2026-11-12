@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { OcrLang } from '~/types/api'
 import { REOCR_LANGS } from '~/composables/useCases'
+import { plural } from '~/utils/format'
 
 // Re-OCR a whole case (handoff §5.3 POST /api/dela/{id}/ocr). Destructive: it overwrites manual corrections, so
 // the modal says so in plain words and the confirm button is in the error colour. «Отмена» is the safe default.
@@ -38,7 +39,7 @@ const items = computed(() => REOCR_LANGS.map(value => ({ value, label: t(`langsF
   <UModal
     v-model:open="open"
     :title="t('dela.card.reocr.title')"
-    :description="t('dela.card.reocr.description', { shifr, count: pagesTotal })"
+    :description="t('dela.card.reocr.description', { shifr, leaves: plural('plural.leaf', pagesTotal) })"
     :ui="{ content: 'sm:max-w-lg', footer: 'justify-end' }"
     :content="focusCancel"
   >
@@ -74,7 +75,7 @@ const items = computed(() => REOCR_LANGS.map(value => ({ value, label: t(`langsF
         type="submit"
         form="reocr-form"
         color="error"
-        icon="i-lucide-refresh-ccw"
+        icon="i-lucide-refresh-cw"
         :loading="busy"
         :label="t('dela.card.reocr.confirm')"
       />

@@ -75,7 +75,7 @@ const plateClass = [
         :is="seg.to ? NuxtLink : 'span'"
         :to="seg.to"
         :aria-current="seg.current ? 'page' : undefined"
-        :class="[plateClass, seg.to && 'transition-colors hover:bg-rail-active']"
+        :class="[plateClass, seg.to && 'transition-colors hover:bg-rail-active focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary']"
       >
         <span
           class="font-plate text-[10px]/3 font-medium uppercase tracking-[0.06em] text-rail-muted"

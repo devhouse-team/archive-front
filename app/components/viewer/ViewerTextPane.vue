@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Lang, Word } from '~/types/api'
 import type { NavKey, ViewerLine } from '~/composables/useViewer'
-import { confPercent, NAV_KEYS, navigateWords } from '~/composables/useViewer'
+import { confShown, NAV_KEYS, navigateWords } from '~/composables/useViewer'
 
 // The recognised text (spec 2 §LocatorPin, §Shared line grid): one tab stop with a roving tabindex.
 // ←/→ move in visual order (mirrored in RTL), ↑/↓ jump between low-confidence words, Tab leaves the pane.
@@ -79,7 +79,7 @@ function announce(id: number) {
   const i = props.order.findIndex(w => w.id === id)
   const w = props.order[i]
   if (!w) return
-  const params = { n: i + 1, total: props.order.length, conf: confPercent(Math.floor(w.conf)) }
+  const params = { n: i + 1, total: props.order.length, conf: confShown(w.conf, props.threshold) }
   announcement.value = t(isLow(w) ? 'viewer.text.announceLow' : 'viewer.text.announce', params)
 }
 
@@ -148,9 +148,9 @@ watch(() => props.editable, (on) => {
 })
 
 function lineMeta(line: ViewerLine) {
-  if (line.mean < props.threshold) return { text: t('viewer.text.lineMean', { value: confPercent(Math.floor(line.mean)) }), cls: 'text-warning font-medium', aria: null }
+  if (line.mean < props.threshold) return { text: t('viewer.text.lineMean', { value: confShown(line.mean, props.threshold) }), cls: 'text-warning font-medium', aria: null }
   if (line.lowCount > 0) return { text: t('viewer.text.lineLow', { count: line.lowCount }), cls: 'text-muted', aria: t('viewer.text.lineLowAria', { count: line.lowCount }) }
-  return { text: t('viewer.text.lineMean', { value: confPercent(Math.floor(line.mean)) }), cls: 'text-dimmed', aria: null }
+  return { text: t('viewer.text.lineMean', { value: confShown(line.mean, props.threshold) }), cls: 'text-dimmed', aria: null }
 }
 
 let raf = 0
@@ -238,11 +238,14 @@ defineExpose({ wordEl, viewport, revealWord, stepLow, root })
           :data-line="line.line"
           :class="[
             'grid grid-cols-[3rem_minmax(0,1fr)_4.5rem] items-baseline px-1',
-            line.words.some(w => w.id === selectedId) && 'bg-elevated/60',
+            line.words.some(w => w.id === selectedId) && 'bg-line-band',
           ]"
         >
           <span
-            class="pe-3 text-end font-sans text-[13px] leading-[inherit] text-muted tabular-nums select-none"
+            :class="[
+              'pe-3 text-end font-sans text-[13px] leading-[inherit] tabular-nums select-none',
+              line.words.some(w => w.id === selectedId) ? 'font-bold text-secondary' : 'text-muted',
+            ]"
             aria-hidden="true"
           >{{ line.line + 1 }}</span>
           <p class="py-0.5">

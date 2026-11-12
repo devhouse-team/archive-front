@@ -14,7 +14,17 @@ export const useQueueStore = defineStore('queue', () => {
   const queue = ref<QueueCounters | null>(null)
   const counts = ref<Record<NavCounter, number>>({ errors: 0, review: 0 })
 
-  async function refresh() {
+  /** The request in flight, shared: the shell's poll and a screen's first load at mount ask once, not twice. */
+  let inFlight: Promise<void> | null = null
+
+  function refresh(): Promise<void> {
+    inFlight ??= load().finally(() => {
+      inFlight = null
+    })
+    return inFlight
+  }
+
+  async function load() {
     const auth = useAuthStore()
     const api = useApi()
     const jobs: Promise<void>[] = []

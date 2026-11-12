@@ -62,16 +62,18 @@ const tableUi = {
   <div class="mx-auto flex max-w-[1440px] flex-col gap-4">
     <header class="flex flex-wrap items-end justify-between gap-3">
       <div class="flex flex-col gap-1">
-        <h1 class="text-[22px]/7 font-bold text-highlighted">
-          <template v-if="!loading && !failed">
-            {{ t('review.count', { count: rows.length }) }}
-          </template>
-          <template v-else>
-            {{ t('review.title') }}
-          </template>
+        <!-- Like every screen: the header names it, the h1 is for assistive tech. -->
+        <h1 class="sr-only">
+          {{ t('review.title') }}
         </h1>
-        <p class="text-sm text-muted">
+        <p class="text-sm text-default">
           {{ t('review.intro') }}
+        </p>
+        <p
+          v-if="!loading && !failed"
+          class="text-sm text-muted tabular-nums"
+        >
+          {{ t('review.count', { count: rows.length }) }}
         </p>
       </div>
       <UButton

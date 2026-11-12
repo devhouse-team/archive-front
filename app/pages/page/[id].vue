@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ExportFormat, Fuzzy, PageDetail } from '~/types/api'
 import type { LeaderGeometry } from '~/composables/useViewer'
-import { changedEdits, confPercent, groupLines, isRecognising, lowThreshold, readingOrder, retryConfirmKey } from '~/composables/useViewer'
+import { changedEdits, confPercent, confShown, groupLines, isRecognising, lowThreshold, readingOrder, retryConfirmKey } from '~/composables/useViewer'
 import { useAuthStore } from '~/stores/auth'
 import { ACCESS } from '~/utils/access'
 import { isApiError } from '~/utils/api-error'
@@ -216,28 +216,23 @@ onBeforeUnmount(() => {
 
 // ---------- mode (EDITORS only) ----------
 const modeItems = computed(() => [
-  { label: t('viewer.text.modeView'), value: 'view' },
-  { label: t('viewer.text.modeEdit'), value: 'edit' },
+  { label: t('viewer.text.modeView'), value: 'view' as const },
+  { label: t('viewer.text.modeEdit'), value: 'edit' as const },
 ])
-// Reka tabs fire the setter on focus and on click: ignore repeats while a switch is in flight, so the
-// discard confirmation (onBeforeRouteUpdate) appears once.
-// A cancelled switch also swallows the repeat that arrives from the same click (mousedown, then click).
+// A pressed-state pair, not tabs: the text pane is the same panel in both modes. The flag keeps a double click
+// from stacking two route changes (and two discard confirmations).
 let modeSwitching = false
-let modeSettledAt = 0
-const mode = computed({
-  get: () => editable.value ? 'edit' : 'view',
-  set: (value: string) => {
-    if (modeSwitching || Date.now() - modeSettledAt < 400 || value === (editable.value ? 'edit' : 'view')) return
-    const query = { ...route.query }
-    if (value === 'edit') query.mode = 'edit'
-    else delete query.mode
-    modeSwitching = true
-    void router.replace({ query }).finally(() => {
-      modeSwitching = false
-      modeSettledAt = Date.now()
-    })
-  },
-})
+const mode = computed<'view' | 'edit'>(() => editable.value ? 'edit' : 'view')
+function setMode(value: 'view' | 'edit') {
+  if (modeSwitching || value === mode.value) return
+  const query = { ...route.query }
+  if (value === 'edit') query.mode = 'edit'
+  else delete query.mode
+  modeSwitching = true
+  void router.replace({ query }).finally(() => {
+    modeSwitching = false
+  })
+}
 
 // ---------- actions ----------
 const reviewing = ref(false)
@@ -298,8 +293,8 @@ async function exportPage(fmt: ExportFormat) {
 // ---------- panes and the leader line ----------
 const pane = ref<'scan' | 'text'>('scan')
 const paneItems = computed(() => [
-  { label: t('viewer.panes.scan'), value: 'scan', icon: 'i-lucide-image' },
-  { label: t('viewer.panes.text'), value: 'text', icon: 'i-lucide-text' },
+  { label: t('viewer.panes.scan'), value: 'scan' as const, icon: 'i-lucide-image' },
+  { label: t('viewer.panes.text'), value: 'text' as const, icon: 'i-lucide-text' },
 ])
 watch(pane, (value) => {
   nextTick(() => {
@@ -388,6 +383,17 @@ onBeforeUnmount(() => {
   cancelAnimationFrame(leaderRaf)
 })
 
+const HINTS_VIEW = [
+  { keys: ['arrowleft', 'arrowright'], label: 'viewer.text.hints.words' },
+  { keys: ['arrowup', 'arrowdown'], label: 'viewer.text.hints.low' },
+] as const
+const HINTS_EDIT = [
+  { keys: ['enter'], label: 'viewer.text.hints.edit' },
+  { keys: ['escape'], label: 'viewer.text.hints.cancel' },
+  { keys: ['arrowdown'], label: 'viewer.text.hints.next' },
+] as const
+const hints = computed(() => editable.value ? HINTS_EDIT : HINTS_VIEW)
+
 const selectedOcr = computed(() => {
   const w = selectedWord.value
   if (!w) return null
@@ -446,14 +452,25 @@ const selectedOcr = computed(() => {
       />
 
       <template v-else>
-        <UTabs
-          v-model="pane"
-          :items="paneItems"
-          :content="false"
+        <!-- Narrow screens show one pane at a time. A pressed-state pair like /ops: both panes stay in the
+             document (hidden by CSS), so there is no tabpanel to point at. -->
+        <UFieldGroup
+          role="group"
           :aria-label="t('viewer.panes.label')"
-          class="lg:hidden"
-          :ui="{ list: 'w-full', trigger: 'flex-1 justify-center' }"
-        />
+          class="flex w-full lg:hidden"
+        >
+          <UButton
+            v-for="item in paneItems"
+            :key="item.value"
+            :color="pane === item.value ? 'primary' : 'neutral'"
+            :variant="pane === item.value ? 'solid' : 'outline'"
+            :icon="item.icon"
+            :label="item.label"
+            :aria-pressed="pane === item.value"
+            class="min-h-9 flex-1 justify-center"
+            @click="pane = item.value"
+          />
+        </UFieldGroup>
 
         <div
           ref="work"
@@ -494,15 +511,21 @@ const selectedOcr = computed(() => {
               v-if="auth.isEditor"
               #mode
             >
-              <UTabs
-                v-model="mode"
-                :items="modeItems"
-                :content="false"
+              <UFieldGroup
+                role="group"
                 :aria-label="t('viewer.text.modeLabel')"
-                activation-mode="manual"
-                size="md"
-                :ui="{ trigger: 'min-h-9' }"
-              />
+              >
+                <UButton
+                  v-for="item in modeItems"
+                  :key="item.value"
+                  :color="mode === item.value ? 'primary' : 'neutral'"
+                  :variant="mode === item.value ? 'solid' : 'outline'"
+                  :label="item.label"
+                  :aria-pressed="mode === item.value"
+                  class="min-h-9"
+                  @click="setMode(item.value)"
+                />
+              </UFieldGroup>
             </template>
             <template #footer>
               <div class="flex min-h-13 flex-wrap items-center gap-x-4 gap-y-2 border-t border-default bg-elevated/50 px-4 py-2 text-[13px]">
@@ -520,7 +543,7 @@ const selectedOcr = computed(() => {
                     class="text-muted"
                     dir="auto"
                   >{{ t('viewer.text.ocrWas', { text: selectedOcr }) }}</span>
-                  <span class="text-muted tabular-nums">· {{ t('viewer.text.selectedConf', { value: confPercent(Math.floor(selectedWord.conf)) }) }}</span>
+                  <span class="text-muted tabular-nums">· {{ t('viewer.text.selectedConf', { value: confShown(selectedWord.conf, threshold) }) }}</span>
                 </p>
                 <p
                   v-else
@@ -528,9 +551,24 @@ const selectedOcr = computed(() => {
                 >
                   {{ t('viewer.text.selectHint') }}
                 </p>
-                <p class="ms-auto text-muted">
-                  {{ editable ? t('viewer.text.hintsEdit') : t('viewer.text.hintsView') }}
-                </p>
+                <ul
+                  class="ms-auto flex flex-wrap items-center gap-x-3 gap-y-1 text-muted"
+                  :aria-label="t('viewer.text.hints.label')"
+                >
+                  <li
+                    v-for="hint in hints"
+                    :key="hint.label"
+                    class="flex items-center gap-1"
+                  >
+                    <UKbd
+                      v-for="key in hint.keys"
+                      :key="key"
+                      :value="key"
+                      size="sm"
+                    />
+                    <span class="ms-0.5">{{ t(hint.label) }}</span>
+                  </li>
+                </ul>
                 <div
                   v-if="editable"
                   class="ms-auto flex flex-wrap items-center justify-end gap-2"

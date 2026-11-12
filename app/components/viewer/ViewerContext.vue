@@ -121,16 +121,10 @@ const total = computed(() => props.page.words.length)
           >
             {{ page.delo.title }}
           </h1>
-          <span
-            v-if="page.delo.years"
-            class="text-sm text-muted tabular-nums"
-          >{{ page.delo.years }}</span>
-          <UBadge
+          <YearChip :years="page.delo.years" />
+          <ScriptBadge
             v-if="page.lang"
-            color="neutral"
-            variant="outline"
-            class="font-plate tracking-[0.04em]"
-            :label="t(`langs.${page.lang}`)"
+            :lang="page.lang"
           />
           <UBadge
             :color="status.color"

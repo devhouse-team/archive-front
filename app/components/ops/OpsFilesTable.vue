@@ -78,7 +78,20 @@ const emptyText = computed(() => props.filtered ? t('upload.queue.emptyFiltered'
     </template>
     <template #status-cell="{ row }">
       <span class="inline-flex items-center gap-2">
+        <!-- Uploaded is the normal end state: quiet, so the retry and invalid badges stand out. -->
+        <span
+          v-if="row.original.status === 'uploaded'"
+          class="inline-flex items-center gap-1.5 text-sm whitespace-nowrap text-muted"
+        >
+          <UIcon
+            name="i-lucide-check"
+            class="size-4 shrink-0"
+            aria-hidden="true"
+          />
+          {{ t(FILE_STATUS.uploaded.label) }}
+        </span>
         <UBadge
+          v-else
           variant="soft"
           :color="FILE_STATUS[row.original.status].color"
           :label="t(FILE_STATUS[row.original.status].label)"

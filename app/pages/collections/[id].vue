@@ -85,7 +85,7 @@ function shifrOf(item: CollectionItem) {
 </script>
 
 <template>
-  <div class="mx-auto flex w-full max-w-5xl flex-col gap-4">
+  <div class="mx-auto flex w-full max-w-[1440px] flex-col gap-4">
     <ULink
       to="/collections"
       class="inline-flex min-h-9 items-center gap-1.5 self-start text-sm font-medium text-primary underline-offset-4 hover:underline"
@@ -213,11 +213,8 @@ function shifrOf(item: CollectionItem) {
                 {{ item.title }}
               </h2>
               <p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-                <span
-                  v-if="item.years"
-                  class="tabular-nums"
-                >{{ item.years }}</span>
-                <SearchLangBadge
+                <YearChip :years="item.years" />
+                <ScriptBadge
                   v-if="item.lang"
                   :lang="item.lang"
                 />
@@ -227,6 +224,8 @@ function shifrOf(item: CollectionItem) {
             <div class="flex shrink-0 flex-wrap items-center gap-2">
               <UButton
                 :to="`/page/${item.page_id}`"
+                color="neutral"
+                variant="outline"
                 icon="i-lucide-file-text"
                 :label="t('collections.detail.open', { leaf: item.leaf })"
                 :aria-label="t('collections.detail.openAria', { leaf: item.leaf, title: item.title })"

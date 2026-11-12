@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Fuzzy, SearchItem } from '~/types/api'
-import { pageLink, pluralForm } from '~/composables/useSearchQuery'
+import { pageLink } from '~/composables/useSearchQuery'
+import { plural } from '~/utils/format'
 import { parseShifr } from '~/utils/shifr'
 
 // One search result = one case (handoff §5.4: results are grouped by case). Address first, then the title as
@@ -9,6 +10,8 @@ const props = defineProps<{
   item: SearchItem
   q: string
   fuzzy: Fuzzy
+  /** The best match (first on the first page) carries the one solid «Открыть»; the rest are outline. */
+  primary?: boolean
 }>()
 
 const { t } = useT()
@@ -16,7 +19,7 @@ const { t } = useT()
 const shifr = computed(() => parseShifr(props.item.shifr))
 const bestLink = computed(() => pageLink(props.item.best_page_id, props.q, props.fuzzy))
 const langs = computed(() => props.item.langs?.length ? props.item.langs : props.item.lang ? [props.item.lang] : [])
-const hitPages = computed(() => t(`search.plural.hitPages.${pluralForm(props.item.hits_pages)}`, { n: props.item.hits_pages }))
+const hitPages = computed(() => plural('search.plural.hitPages', props.item.hits_pages))
 
 const expanded = ref(false)
 const panelId = useId()
@@ -56,16 +59,15 @@ const titleId = useId()
     <ul class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-muted">
       <li
         v-if="item.years"
-        class="tabular-nums"
+        class="flex"
       >
-        <span class="sr-only">{{ t('search.result.years', { years: item.years }) }}</span>
-        <span aria-hidden="true">{{ item.years }}</span>
+        <YearChip :years="item.years" />
       </li>
       <li
         v-if="langs.length"
         class="flex flex-wrap gap-1"
       >
-        <SearchLangBadge
+        <ScriptBadge
           v-for="l in langs"
           :key="l"
           :lang="l"
@@ -87,6 +89,8 @@ const titleId = useId()
     <div class="flex flex-wrap items-center gap-2">
       <UButton
         :to="bestLink"
+        :color="primary ? 'primary' : 'neutral'"
+        :variant="primary ? 'solid' : 'outline'"
         icon="i-lucide-file-text"
         :label="t('search.result.open', { leaf: item.leaf })"
         :aria-label="t('search.result.openAria', { leaf: item.leaf, title: item.title })"

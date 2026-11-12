@@ -93,8 +93,15 @@ export default {
       selected: 'Выбрано',
       selectedConf: 'уверенность {value} %',
       selectHint: 'Выберите слово в тексте или на скане',
-      hintsView: '←→ по словам · ↑↓ низкая уверенность',
-      hintsEdit: 'Enter изменить · Esc отмена · ↓ следующее',
+      // Keyboard hints: the keys are drawn as <kbd> keycaps, these are the words after them.
+      hints: {
+        label: 'Клавиши',
+        words: 'по словам',
+        low: 'низкая уверенность',
+        edit: 'изменить',
+        cancel: 'отмена',
+        next: 'следующее',
+      },
       editLabel: 'Исправление слова «{text}»',
       changed: 'Изменено слов: {count}',
       save: 'Сохранить правки',

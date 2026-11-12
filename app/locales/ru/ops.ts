@@ -7,6 +7,7 @@ export default {
       queued: 'В очереди',
       retry: 'Повтор',
       uploadedToday: 'Загружено сегодня',
+      uploadedTarget: 'открыть все загруженные',
       invalid: 'Ошибки',
       ocrPending: 'Ждут распознавания',
       ocrRunning: 'Распознаётся',

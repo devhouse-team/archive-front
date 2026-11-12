@@ -4,6 +4,7 @@ import type { DeloDetail, ExportFormat, OcrLang } from '~/types/api'
 import { ACCESS } from '~/utils/access'
 import { DELO_POLL_MS, EXPORT_FORMATS, gapsLabel, isOcrBusy, pageLangs } from '~/composables/useCases'
 import { useAuthStore } from '~/stores/auth'
+import { plural } from '~/utils/format'
 
 definePageMeta({ roles: ACCESS.dela, title: 'pages.delo' })
 
@@ -116,7 +117,7 @@ async function reocr(lang: OcrLang) {
   try {
     const res = await api.dela.reocr(delo.value.id, lang)
     reocrOpen.value = false
-    notify(t('dela.card.reocr.queued', { count: res.queued }), 'success')
+    notify(t('dela.card.reocr.queued', { leaves: plural('plural.leaf', res.queued) }), 'success')
     watchingReocr.value = true
     poll.start()
   }
@@ -183,12 +184,15 @@ async function reocr(lang: OcrLang) {
             <DelaRestrictedBadge :access="delo.access" />
           </div>
           <dl class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-            <div class="flex gap-1.5">
+            <div class="flex items-center gap-1.5">
               <dt class="text-muted">
                 {{ t('dela.card.years') }}
               </dt>
-              <dd class="text-default tabular-nums">
-                {{ delo.years }}
+              <dd class="flex">
+                <YearChip
+                  :years="delo.years"
+                  labelled
+                />
               </dd>
             </div>
             <div
@@ -236,7 +240,10 @@ async function reocr(lang: OcrLang) {
             :items="exportItems"
             :disabled="!canExport"
           >
+            <!-- Same treatment as the viewer's Экспорт: a secondary action, neutral outline. -->
             <UButton
+              color="neutral"
+              variant="outline"
               icon="i-lucide-download"
               trailing-icon="i-lucide-chevron-down"
               :label="t('dela.card.export')"
@@ -260,9 +267,9 @@ async function reocr(lang: OcrLang) {
           <UButton
             v-if="canReocr"
             class="ms-auto"
-            color="error"
+            color="neutral"
             variant="outline"
-            icon="i-lucide-refresh-ccw"
+            icon="i-lucide-refresh-cw"
             :label="t('dela.card.reocr.open')"
             :disabled="busy || delo.pages.length === 0"
             @click="reocrOpen = true"

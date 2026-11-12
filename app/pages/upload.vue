@@ -316,10 +316,6 @@ async function sendNow(f: M1File) {
           class="text-lg font-semibold text-highlighted"
         >
           {{ t('upload.queue.title') }}
-          <span
-            v-if="files"
-            class="ms-2 text-sm font-normal text-muted tabular-nums"
-          >{{ t('upload.queue.count', { count: files.length }) }}</span>
         </h2>
         <div class="flex flex-wrap items-center gap-2">
           <USelect
@@ -338,6 +334,12 @@ async function sendNow(f: M1File) {
           />
         </div>
       </div>
+      <p
+        v-if="files"
+        class="text-sm text-muted tabular-nums"
+      >
+        {{ t('upload.queue.count', { count: files.length }) }}
+      </p>
 
       <UAlert
         v-if="filesError && !files"

@@ -113,15 +113,6 @@ export function activeFilterCount(filters: SearchFilterState): number {
   return n
 }
 
-/** Russian plural form for n: one (1, 21), few (2–4, 22–24), many (0, 5–20, 25…). */
-export function pluralForm(n: number): 'one' | 'few' | 'many' {
-  const mod10 = n % 10
-  const mod100 = n % 100
-  if (mod10 === 1 && mod100 !== 11) return 'one'
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'few'
-  return 'many'
-}
-
 /** The page link for a hit: /page/:id?hl=<q>&fz=<fuzzy> (handoff §4 highlighting). */
 export function pageLink(pageId: number, q: string, fuzzy: Fuzzy) {
   const query: Record<string, string> = { fz: String(fuzzy) }

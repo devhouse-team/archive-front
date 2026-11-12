@@ -1,0 +1,12 @@
+## Verdict: PASS
+Counts: critical 0, major 0, minor 3
+
+1. [minor] app/components/ShifrPlate.vue:78 — transition-colors animates outline-color, so the focus ring is white on white for ~150 ms. Fix: transition-[background-color] or focus-visible:transition-none.
+2. [minor] app/components/viewer/ViewerScanPane.vue:354 — the .scan-line-number radius of 3px is off the token scale. Use 5px or document it.
+3. [minor] app/components/viewer/ViewerScanPane.vue:134-155 — revealSelected() scrolls the page scroller at all widths. Limit it to below lg, or check at 1280×720.
+
+Verified live (Playwright-routed fixtures; the backend login through the proxy was denied by the permission system and not routed around):
+- P1: ЕАИС stale → «ЕАИС: нет данных», recovers; viewer toggles are aria-pressed groups; mobile hit visible; admin demote confirmed with Cancel focus, Esc sends no PATCH; drawer name, plate focus, no UserMenu title; checkCase 401 → /login?next.
+- Finish fixes: scan band and line number aria-hidden; button roles; one primary per list; ScriptBadge and YearChip everywhere; quiet success; count lines; toggle style; collections width; kbd keycaps; demo footer gated.
+- No regressions: reader rail and restricted invisibility, v-html only on snippet_html, polling stops, the cold /ops load makes 1 queue request, viewer keyboard including RTL, PATCH carries only changed words, toast above the footer.
+Checks: typecheck, lint, tests 223/223, build, check:offline 84 clean, glyphs. Impeccable: 0 anti-patterns, 2 advisories.

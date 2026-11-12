@@ -223,3 +223,12 @@ describe('«Распознать заново» never drops edits silently (revi
     window.confirm = original
   })
 })
+
+describe('confidence shown against the threshold', () => {
+  it('floors to whole numbers for 60 and to one decimal for a fractional threshold', async () => {
+    const { confShown } = await import('~/composables/useViewer')
+    expect(confShown(59.9, 60)).toBe('59')
+    expect(confShown(96.49, 96.5)).toBe('96,4')
+    expect(confShown(97, 96.5)).toBe('97')
+  })
+})

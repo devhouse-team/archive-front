@@ -3,7 +3,7 @@ import type { TableColumn } from '@nuxt/ui'
 import type { JournalResult, JournalRow } from '~/types/api'
 import { errorText, JOURNAL_RESULT } from '~/composables/useOps'
 import { ACCESS } from '~/utils/access'
-import { formatTimestamp } from '~/utils/format'
+import { baseNames, formatTimestamp } from '~/utils/format'
 import { parseShifr } from '~/utils/shifr'
 
 // Журнал (handoff §6 #10; surface brief app-pages-journal-vue). STAFF only.
@@ -182,6 +182,12 @@ const tableUi = {
       </template>
       <template #result-cell="{ row }">
         <OpsResultBadge :result="row.original.result" />
+      </template>
+      <template #file_name-cell="{ row }">
+        {{ row.original.file_name ? baseNames(row.original.file_name) : '' }}
+      </template>
+      <template #details-cell="{ row }">
+        {{ row.original.details ? baseNames(row.original.details) : '' }}
       </template>
       <template #loading>
         {{ t('state.loading') }}

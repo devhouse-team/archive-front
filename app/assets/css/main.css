@@ -122,6 +122,8 @@
   --color-eais-ok: var(--color-green-500);
   /* Stage 5: white halo of the two-tone scan overlays, and the paper lift of the scan image. */
   --color-halo: #FFFFFF;
+  /* Stage 9: the shared line grid. The selected line's band, the same on the scan and in the text. */
+  --color-line-band: color-mix(in srgb, var(--color-civic-800) 7%, transparent);
   --shadow-scan: 0 1px 3px rgb(18 32 46 / 0.18);
 
   --font-sans: "Fira Sans", "Noto Sans Variable", "Noto Naskh Arabic Variable", system-ui, sans-serif;

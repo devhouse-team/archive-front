@@ -19,6 +19,8 @@ interface Tile {
   to: RouteLocationRaw
   /** Status cue when the count is above zero. */
   alert?: 'error' | 'warning'
+  /** Where the link goes, when that is wider than the count (today's uploads → every uploaded file). */
+  target?: MessageKey
 }
 
 const tiles = computed<Tile[]>(() => {
@@ -26,7 +28,7 @@ const tiles = computed<Tile[]>(() => {
   return [
     { id: 'queued', label: 'ops.tiles.queued', value: q?.files.queued ?? 0, to: { path: '/upload', query: { status: 'queued' } } },
     { id: 'retry', label: 'ops.tiles.retry', value: q?.files.retry ?? 0, to: { path: '/upload', query: { status: 'retry' } }, alert: 'warning' },
-    { id: 'uploaded', label: 'ops.tiles.uploadedToday', value: q?.uploaded_today ?? 0, to: { path: '/upload', query: { status: 'uploaded' } } },
+    { id: 'uploaded', label: 'ops.tiles.uploadedToday', value: q?.uploaded_today ?? 0, to: { path: '/upload', query: { status: 'uploaded' } }, target: 'ops.tiles.uploadedTarget' },
     { id: 'invalid', label: 'ops.tiles.invalid', value: q?.files.invalid ?? 0, to: '/errors', alert: 'error' },
     { id: 'ocrPending', label: 'ops.tiles.ocrPending', value: q?.ocr.pending ?? 0, to: '/dela' },
     { id: 'ocrRunning', label: 'ops.tiles.ocrRunning', value: q?.ocr.running ?? 0, to: '/dela' },
@@ -52,7 +54,13 @@ const nf = new Intl.NumberFormat('ru-RU')
           :to="tile.to"
           class="group flex min-h-24 flex-col justify-between gap-2 px-5 py-4 transition-colors hover:bg-elevated/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
         >
-          <span class="text-sm text-muted group-hover:text-toned">{{ t(tile.label) }}</span>
+          <span class="flex flex-col">
+            <span class="text-sm text-muted group-hover:text-toned">{{ t(tile.label) }}</span>
+            <span
+              v-if="tile.target"
+              class="text-xs text-muted"
+            >{{ t(tile.target) }}</span>
+          </span>
           <span class="flex items-baseline gap-2">
             <USkeleton
               v-if="loading && !queue"

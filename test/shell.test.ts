@@ -174,6 +174,15 @@ describe('counters and bell requests per role', () => {
     expect(useQueueStore().counts).toEqual({ errors: 3, review: 0 })
   })
 
+  it('two refreshes while one is in flight make one queue request', async () => {
+    useAuthStore().setUser(user('operator'))
+    const store = useQueueStore()
+    await Promise.all([store.refresh(), store.refresh()])
+    expect(calls).toEqual(['queue'])
+    await store.refresh()
+    expect(calls).toEqual(['queue', 'queue'])
+  })
+
   it('archivist: queue, review and notifications', async () => {
     useAuthStore().setUser(user('archivist'))
     await useQueueStore().refresh()
@@ -232,6 +241,37 @@ describe('ЕАИС indicator', () => {
     expect(eaisView(health(), null)).toMatchObject({ state: 'online', label: 'ЕАИС на связи', retry: null, problems: 0 })
     expect(eaisView(health({ eais_online: false }), 61)).toMatchObject({ state: 'down', label: 'ЕАИС недоступна', retry: 'Повтор через 1:01', retryShort: '1:01' })
     expect(eaisView(null, null)).toMatchObject({ state: 'unknown', label: 'ЕАИС: нет данных' })
+  })
+
+  it('says «нет данных» while the last poll failed, never «на связи» from the old answer', () => {
+    const v = eaisView(health(), 5, true)
+    expect(v).toMatchObject({ state: 'unknown', label: 'ЕАИС: нет данных', retry: null, problems: 0 })
+    expect(v.workers).toEqual([])
+  })
+
+  it('a failed poll after a good one marks the store stale until the next good answer', async () => {
+    setActivePinia(createPinia())
+    useAuthStore().setUser(user('admin'))
+    const store = useHealthStore()
+    let fail = false
+    registerEndpoint('/api/health', () => {
+      if (fail) throw createError({ statusCode: 500, statusMessage: 'boom' })
+      return health()
+    })
+    await store.refresh()
+    expect(store.eaisOnline).toBe(true)
+    expect(eaisView(store.data, store.retryIn, store.stale).state).toBe('online')
+
+    fail = true
+    await expect(store.refresh()).rejects.toBeTruthy()
+    expect(store.stale).toBe(true)
+    expect(store.eaisOnline).toBeNull()
+    expect(eaisView(store.data, store.retryIn, store.stale).label).toBe('ЕАИС: нет данных')
+
+    fail = false
+    await store.refresh()
+    expect(store.stale).toBe(false)
+    expect(eaisView(store.data, store.retryIn, store.stale).state).toBe('online')
   })
 
   it('counts stalled workers and a low disk as problems', () => {

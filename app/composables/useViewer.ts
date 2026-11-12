@@ -142,6 +142,15 @@ export function confPercent(value: number | null | undefined, digits = 0): strin
   return value.toLocaleString('ru-RU', { maximumFractionDigits: digits, minimumFractionDigits: 0 })
 }
 
+/**
+ * A word or line confidence, floored so it never reads as passing when it is below the threshold: whole numbers
+ * against a whole threshold (Tesseract 60), one decimal against a fractional one (vlm 96,5 → «96,4», not «96»).
+ */
+export function confShown(value: number, threshold: number): string {
+  if (Number.isInteger(threshold)) return confPercent(Math.floor(value))
+  return confPercent(Math.floor(value * 10) / 10, 1)
+}
+
 /** Leader line geometry in work-area coordinates (ViewerLeader). */
 export interface LeaderGeometry {
   /** Pin centre, in work-area coordinates. */

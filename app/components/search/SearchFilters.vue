@@ -212,12 +212,26 @@ const radioUi = { fieldset: 'flex-col gap-0', legend: 'mb-1 text-sm font-medium 
         />
       </UFormField>
 
-      <p
+      <!-- A фондообразователь arrives only from a link (?creator=); it has no field, so it gets its own clear. -->
+      <div
         v-if="filters.creator"
-        class="text-sm text-muted"
+        class="flex items-center gap-1"
       >
-        {{ t('search.filters.creator', { name: filters.creator }) }}
-      </p>
+        <p
+          class="min-w-0 flex-1 text-sm text-muted"
+          dir="auto"
+        >
+          {{ t('search.filters.creator', { name: filters.creator }) }}
+        </p>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-x"
+          class="min-h-9 min-w-9 shrink-0 justify-center"
+          :aria-label="t('search.filters.creatorClear', { name: filters.creator })"
+          @click="set('creator', '')"
+        />
+      </div>
 
       <UButton
         v-if="hasFilters"

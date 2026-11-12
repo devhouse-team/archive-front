@@ -192,8 +192,10 @@ export function createApiClient(deps: ApiDeps) {
         get<M1File[]>('/api/m1/files', query, errorMode),
       previewUrl: (id: number) => `/api/m1/files/${id}/preview`,
       queue: (errorMode: ErrorMode = 'background') => get<QueueCounters>('/api/m1/queue', undefined, errorMode),
+      // Live check while typing: quiet on failure (the field shows «не удалось проверить»), but a 401 still
+      // sends the user to /login like every other request.
       checkCase: (fond: number, opis: number, delo: number) =>
-        get<CheckCaseResult>('/api/m1/check-case', { fond, opis, delo }, 'silent'),
+        get<CheckCaseResult>('/api/m1/check-case', { fond, opis, delo }, 'background'),
       fixShifr: (id: number, body: ShifrBody) => post<M1File>(`/api/m1/files/${id}/shifr`, body),
       /** «Отправить сейчас» on a `retry` file, «Отправить повторно» on an `invalid` one. */
       retryFile: (id: number, force = false) => post<M1File>(`/api/m1/files/${id}/retry`, { force }),

@@ -7,7 +7,10 @@ const { t } = useT()
 const { pageError } = usePageError()
 const route = useRoute()
 
-const toaster = { position: 'bottom-right' as const }
+// The viewer keeps its save bar (and the «Сохранить» button) along the bottom edge: lift toasts above it there.
+const TOASTER = { position: 'bottom-right' as const }
+const TOASTER_VIEWER = { position: 'bottom-right' as const, ui: { viewport: 'bottom-32' } }
+const toaster = computed(() => route.path.startsWith('/page/') ? TOASTER_VIEWER : TOASTER)
 
 const ERROR_TITLES: Record<PageErrorKind, MessageKey> = {
   forbidden: 'errors.forbidden',

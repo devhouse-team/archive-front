@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { JournalRow } from '~/types/api'
-import { formatTimestamp } from '~/utils/format'
+import { baseNames, formatTimestamp } from '~/utils/format'
 import { parseShifr } from '~/utils/shifr'
 
 // The last journal rows on the operator panel. User data is rendered by interpolation only.
@@ -86,7 +86,7 @@ const { t } = useT()
             <span
               v-if="row.file_name"
               class="truncate"
-            >{{ row.file_name }}</span>
+            >{{ baseNames(row.file_name) }}</span>
             <ShifrPlate
               v-if="parseShifr(row.shifr)"
               variant="compact"
@@ -96,7 +96,7 @@ const { t } = useT()
               v-else-if="row.shifr"
               class="tabular-nums"
             >{{ row.shifr }}</span>
-            <span v-if="row.details">{{ row.details }}</span>
+            <span v-if="row.details">{{ baseNames(row.details) }}</span>
           </p>
         </div>
         <OpsResultBadge :result="row.result" />

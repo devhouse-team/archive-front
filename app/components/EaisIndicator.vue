@@ -12,9 +12,9 @@ const { t } = useT()
 const auth = useAuthStore()
 const health = useHealthStore()
 
-const view = computed(() => eaisView(health.data, health.retryIn))
+const view = computed(() => eaisView(health.data, health.retryIn, health.stale))
 const downSince = computed(() => {
-  const since = health.data?.eais_down_since
+  const since = view.value.state === 'down' ? health.data?.eais_down_since : null
   return since ? t('eais.downSince', { time: formatTimestamp(since) }) : null
 })
 // Announce changes of the ЕАИС state only (online ⇄ down), not the first answer and not the countdown.
@@ -117,7 +117,7 @@ const diskFree = computed(() => health.data ? t('eais.disk.free', { gb: health.d
             </div>
 
             <div
-              v-if="health.data"
+              v-if="health.data && !health.stale"
               class="flex flex-col gap-1"
             >
               <dt class="text-[13px] text-muted">

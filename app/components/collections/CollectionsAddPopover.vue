@@ -3,7 +3,7 @@ import { useCollectionsStore } from '~/stores/collections'
 import { isApiError } from '~/utils/api-error'
 
 // «В подборку» (handoff §5.5): a popover listing the user's подборки plus «Новая подборка».
-// Adding is idempotent; a page this tab already added shows «уже добавлен» and is not posted again.
+// Adding is idempotent; a page known to be in a подборка shows «уже добавлен» and is not posted again.
 const props = defineProps<{
   pageId: number
   leaf: number
@@ -22,7 +22,8 @@ const creating = ref(false)
 const nameError = ref(false)
 
 watch(open, (v) => {
-  if (v) void store.load()
+  // Always ask the server: another tab or the collection screen may have changed the counts.
+  if (v) void store.load(true)
   else {
     newName.value = ''
     nameError.value = false
@@ -34,7 +35,7 @@ async function add(id: number, name: string) {
   busyId.value = id
   try {
     const result = await store.addPage(id, props.pageId)
-    if (result === 'added') notify(t('collections.add.added', { name }), 'success')
+    notify(t(result === 'added' ? 'collections.add.added' : 'collections.add.alreadyIn', { name }), result === 'added' ? 'success' : 'info')
     open.value = false
   }
   catch (e) {

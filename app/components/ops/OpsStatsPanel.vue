@@ -83,9 +83,10 @@ const tableUi = { th: 'bg-elevated py-2.5', td: 'py-2.5 tabular-nums text-defaul
           <UButton
             v-for="item in periodItems"
             :key="item.value"
-            color="neutral"
+            :color="period === item.value ? 'primary' : 'neutral'"
             :variant="period === item.value ? 'solid' : 'outline'"
             :label="item.label"
+            class="min-h-9"
             :aria-pressed="period === item.value"
             @click="period = item.value"
           />

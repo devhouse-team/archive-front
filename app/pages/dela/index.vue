@@ -193,15 +193,17 @@ const tableUi = {
         :label="t('dela.reset')"
         @click="reset"
       />
-      <p
-        class="ms-auto flex min-h-9 items-center self-end text-sm text-muted tabular-nums"
-        role="status"
-      >
-        <template v-if="!loading && !failed">
-          {{ t('dela.count', { count: rows.length }) }}
-        </template>
-      </p>
     </section>
+
+    <!-- The one row-count line style (Stage 9): muted, small, tabular, top-left above the list. -->
+    <p
+      class="min-h-5 text-sm text-muted tabular-nums"
+      role="status"
+    >
+      <template v-if="!loading && !failed">
+        {{ t('dela.count', { count: rows.length }) }}
+      </template>
+    </p>
 
     <UAlert
       v-if="failed"
@@ -285,7 +287,10 @@ const tableUi = {
             </div>
           </template>
           <template #years-cell="{ row }">
-            <span class="tabular-nums">{{ row.original.years }}</span>
+            <YearChip
+              :years="row.original.years"
+              labelled
+            />
           </template>
           <template #langs-cell="{ row }">
             <DelaLangBadges :langs="langsOf(row.original)" />

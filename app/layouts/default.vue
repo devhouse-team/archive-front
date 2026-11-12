@@ -4,6 +4,7 @@ import { useHealthStore } from '~/stores/health'
 import { useNotificationsStore } from '~/stores/notifications'
 import { useQueueStore } from '~/stores/queue'
 import { headerButtonClass } from '~/utils/civic-ui'
+import { isEnabled } from '~/utils/config'
 import { navForRole } from '~/utils/nav'
 
 // The civic app shell (spec 2, surface brief app-layouts-default-vue): a 220 px rail and a 56 px header as
@@ -19,6 +20,8 @@ useQueueStore().startPolling()
 useNotificationsStore().startPolling()
 
 const groups = computed(() => navForRole(auth.role))
+// The comp's rail footer: a quiet reminder that this instance holds demo data (same switch as the login's demo accounts).
+const demoData = isEnabled(useRuntimeConfig().public.demoAccounts)
 const showBell = computed(() => auth.can('notifications'))
 
 // Screen names only: error states and the catch-all carry no screen name in the header.
@@ -40,6 +43,8 @@ const sidebarUi = {
   body: 'gap-0 px-0 pt-0 pb-4',
   content: 'w-[280px] max-w-[85vw] bg-rail divide-y-0 ring-0',
 }
+// The mobile drawer's dialog name: the menu it holds, not the toggle's «Открыть боковую панель».
+const sidebarMenu = { title: t('nav.label') }
 const navbarAs = { root: 'header', title: 'p' }
 const navbarUi = {
   root: 'h-14 gap-2 border-b-0 bg-rail px-3 sm:px-6',
@@ -61,12 +66,21 @@ const panelUi = { root: 'min-w-0' }
     <UDashboardGroup :persistent="false">
       <UDashboardSidebar
         :toggle="civicToggle"
+        :menu="sidebarMenu"
         :ui="sidebarUi"
       >
         <template #header>
           <AppBrand />
         </template>
         <AppRail :groups="groups" />
+        <template
+          v-if="demoData"
+          #footer
+        >
+          <p class="ps-1 font-plate text-[10px]/5 font-medium tracking-[0.06em] text-rail-muted uppercase">
+            {{ t('app.demoData') }}
+          </p>
+        </template>
       </UDashboardSidebar>
 
       <UDashboardPanel :ui="panelUi">

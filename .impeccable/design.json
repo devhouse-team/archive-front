@@ -1,0 +1,484 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-12T03:17:45+00:00",
+  "title": "Design System: Цифровой архив Астаны",
+  "extensions": {
+    "colorMeta": {
+      "civic-blue": {
+        "role": "secondary",
+        "displayName": "Civic Blue",
+        "cssVar": "--color-civic-800",
+        "tonalRamp": [
+          "#011735",
+          "#042851",
+          "#0B3A6E",
+          "#1C508C",
+          "#3067A9",
+          "#4A82C6",
+          "#95BDEF",
+          "#DAE8FB"
+        ]
+      },
+      "civic-blue-active": {
+        "role": "secondary",
+        "displayName": "Civic Blue Active",
+        "cssVar": "--color-civic-700",
+        "tonalRamp": [
+          "#011735",
+          "#042851",
+          "#0B3A6E",
+          "#1C508C",
+          "#3067A9",
+          "#4A82C6",
+          "#95BDEF",
+          "#DAE8FB"
+        ]
+      },
+      "civic-label": {
+        "role": "secondary",
+        "displayName": "Civic Label",
+        "cssVar": "--color-civic-200",
+        "tonalRamp": [
+          "#011735",
+          "#042851",
+          "#0B3A6E",
+          "#1C508C",
+          "#3067A9",
+          "#4A82C6",
+          "#95BDEF",
+          "#DAE8FB"
+        ]
+      },
+      "civic-field": {
+        "role": "secondary",
+        "displayName": "Civic Field",
+        "cssVar": "--color-civic-900",
+        "tonalRamp": [
+          "#011735",
+          "#042851",
+          "#0B3A6E",
+          "#1C508C",
+          "#3067A9",
+          "#4A82C6",
+          "#95BDEF",
+          "#DAE8FB"
+        ]
+      },
+      "civic-field-border": {
+        "role": "secondary",
+        "displayName": "Civic Field Border",
+        "cssVar": "--color-civic-400",
+        "tonalRamp": [
+          "#011735",
+          "#042851",
+          "#0B3A6E",
+          "#1C508C",
+          "#3067A9",
+          "#4A82C6",
+          "#95BDEF",
+          "#DAE8FB"
+        ]
+      },
+      "action-blue": {
+        "role": "primary",
+        "displayName": "Action Blue",
+        "cssVar": "--color-action-600",
+        "tonalRamp": [
+          "#011F34",
+          "#00324F",
+          "#03456B",
+          "#085A88",
+          "#0B6FA7",
+          "#1E88C8",
+          "#83C1F0",
+          "#D3E9FA"
+        ]
+      },
+      "locator-gold": {
+        "role": "tertiary",
+        "displayName": "Locator Gold",
+        "cssVar": "--color-locator-400",
+        "tonalRamp": [
+          "#362600",
+          "#503B03",
+          "#6C5007",
+          "#89670F",
+          "#A77F12",
+          "#CB9A13",
+          "#F2B705",
+          "#FFF4CC"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "cssVar": "--color-ink",
+        "tonalRamp": [
+          "#19212B",
+          "#2A343F",
+          "#3D4755",
+          "#505C6B",
+          "#657182",
+          "#99A6B6",
+          "#D0DAE7",
+          "#F4F7FA"
+        ]
+      },
+      "ground": {
+        "role": "neutral",
+        "displayName": "Ground",
+        "cssVar": "--ui-bg-muted",
+        "tonalRamp": [
+          "#19212B",
+          "#2A343F",
+          "#3D4755",
+          "#505C6B",
+          "#657182",
+          "#99A6B6",
+          "#D0DAE7",
+          "#F4F7FA"
+        ]
+      },
+      "elevated": {
+        "role": "neutral",
+        "displayName": "Elevated",
+        "cssVar": "--ui-bg-elevated",
+        "tonalRamp": [
+          "#19212B",
+          "#2A343F",
+          "#3D4755",
+          "#505C6B",
+          "#657182",
+          "#99A6B6",
+          "#D0DAE7",
+          "#F4F7FA"
+        ]
+      },
+      "scan-pane": {
+        "role": "neutral",
+        "displayName": "Scan Pane",
+        "cssVar": "--color-scan-pane",
+        "tonalRamp": [
+          "#19212B",
+          "#2A343F",
+          "#3D4755",
+          "#505C6B",
+          "#657182",
+          "#99A6B6",
+          "#D0DAE7",
+          "#F4F7FA"
+        ]
+      },
+      "control-border": {
+        "role": "neutral",
+        "displayName": "Control Border",
+        "cssVar": "--ui-border-accented",
+        "tonalRamp": [
+          "#19212B",
+          "#2A343F",
+          "#3D4755",
+          "#505C6B",
+          "#657182",
+          "#99A6B6",
+          "#D0DAE7",
+          "#F4F7FA"
+        ]
+      },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "Text Muted",
+        "cssVar": "--ui-text-muted",
+        "tonalRamp": [
+          "#19212B",
+          "#2A343F",
+          "#3D4755",
+          "#505C6B",
+          "#657182",
+          "#99A6B6",
+          "#D0DAE7",
+          "#F4F7FA"
+        ]
+      },
+      "line-band": {
+        "role": "neutral",
+        "displayName": "Line Band",
+        "cssVar": "--color-line-band",
+        "canonical": "color-mix(in srgb, var(--color-civic-800) 7%, transparent)"
+      },
+      "warning": {
+        "role": "status",
+        "displayName": "Warning (amber-800)",
+        "cssVar": "--ui-warning"
+      },
+      "lowconf-fill": {
+        "role": "status",
+        "displayName": "Low-confidence Fill (amber-100)",
+        "cssVar": "--color-lowconf-fill"
+      },
+      "error": {
+        "role": "status",
+        "displayName": "Error (red-800)",
+        "cssVar": "--ui-error"
+      },
+      "success": {
+        "role": "status",
+        "displayName": "Success (green-800)",
+        "cssVar": "--ui-success"
+      },
+      "eais-ok": {
+        "role": "status",
+        "displayName": "ЕАИС OK (green-500)",
+        "cssVar": "--color-eais-ok",
+        "canonical": "Tailwind v4 green-500, oklch(72.3% 0.219 149.579)"
+      },
+      "hit": {
+        "role": "status",
+        "displayName": "Search Hit (cyan-200)",
+        "cssVar": "--color-hit"
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Case and collection titles under the plate; page error heading."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Empty-state and section headings."
+      },
+      "page-text": {
+        "displayName": "Page text",
+        "purpose": "OCR text in the viewer, 24 px rows."
+      },
+      "page-text-arabic": {
+        "displayName": "Page text, Töte",
+        "purpose": "kk-arab OCR text, RTL, 30 px rows."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Base UI size: tables, forms, count lines."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Header status, brand name, line numbers, table headers."
+      },
+      "plate-value": {
+        "displayName": "Plate value",
+        "purpose": "Values on the address plates."
+      },
+      "plate-label": {
+        "displayName": "Plate micro-label",
+        "purpose": "Bilingual micro-labels on plates and rail groups; the only text under 12 px."
+      },
+      "chip": {
+        "displayName": "Chip",
+        "purpose": "ScriptBadge and YearChip."
+      }
+    },
+    "shadows": [
+      {
+        "name": "scan",
+        "value": "0 1px 3px rgb(18 32 46 / 0.18)",
+        "purpose": "Paper lift of the scan image; the only ambient shadow."
+      },
+      {
+        "name": "plate-rule",
+        "value": "inset 0 0 0 3px var(--ui-secondary), inset 0 0 0 4px rgb(255 255 255 / 0.55)",
+        "purpose": "Enamel plate inner white rule."
+      },
+      {
+        "name": "rail-active-bar",
+        "value": "inset 3px 0 0 0 #FFFFFF",
+        "purpose": "Active rail item marker (mirrored in RTL)."
+      },
+      {
+        "name": "locator-ring",
+        "value": "0 0 0 1.5px var(--color-ink), 0 0 0 3px #FFFFFF",
+        "purpose": "Pin and current-plate dot."
+      },
+      {
+        "name": "overlay-halo",
+        "value": "0 0 0 1px #FFFFFF, inset 0 0 0 1px #FFFFFF",
+        "purpose": "White half of two-tone scan overlays (with a 1 px ink border)."
+      }
+    ],
+    "focus": [
+      {
+        "name": "light-ground",
+        "value": "outline: 3px solid var(--ui-primary); outline-offset: 2px",
+        "purpose": "Every focus-visible on light grounds (focus.css)."
+      },
+      {
+        "name": "civic-field",
+        "value": "outline: 2px solid #FFFFFF",
+        "purpose": "Rail and header controls; offset 0 on rail pills, 2 px on header buttons; header search uses a 2 px white inset ring."
+      }
+    ],
+    "motion": [
+      {
+        "name": "locator-glide",
+        "value": "120ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Pin and leader moving between words; none under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px",
+        "purpose": "Rail becomes a slideover below; viewer stacks to a Скан/Текст switch below."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one solid action per view or list, e.g. «Отметить проверенной →».",
+      "html": "<button class=\"ds-btn-primary\">Отметить проверенной →</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:8px 12px;border-radius:6px;font:500 14px/20px var(--font-sans,'Fira Sans',sans-serif);cursor:pointer;transition:background-color .15s,box-shadow .15s;border:0;background:#0B6FA7;color:#fff} .ds-btn-primary:hover{background:#085A88} .ds-btn-primary:focus-visible{outline:3px solid #0B6FA7;outline-offset:2px}"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Every other action: Экспорт, Распознать заново (opens a confirm), Отправить повторно, Отмена.",
+      "html": "<button class=\"ds-btn-outline\">Распознать заново</button>",
+      "css": ".ds-btn-outline{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:8px 12px;border-radius:6px;font:500 14px/20px var(--font-sans,'Fira Sans',sans-serif);cursor:pointer;transition:background-color .15s,box-shadow .15s;border:0;background:#fff;color:#12202E;box-shadow:inset 0 0 0 1px #657182} .ds-btn-outline:hover{background:#F4F7FA} .ds-btn-outline:focus-visible{outline:3px solid #0B6FA7;outline-offset:2px}"
+    },
+    {
+      "name": "Destructive Confirm",
+      "kind": "button",
+      "refersTo": "button-destructive-confirm",
+      "description": "Only inside a confirmation dialog, beside a neutral «Отмена».",
+      "html": "<button class=\"ds-btn-danger\">Распознать и перезаписать</button>",
+      "css": ".ds-btn-danger{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:8px 12px;border-radius:6px;font:500 14px/20px var(--font-sans,'Fira Sans',sans-serif);cursor:pointer;transition:background-color .15s,box-shadow .15s;border:0;background:#9F0712;color:#fff} .ds-btn-danger:hover{background:#82181A} .ds-btn-danger:focus-visible{outline:3px solid #0B6FA7;outline-offset:2px}"
+    },
+    {
+      "name": "Civic Rail",
+      "kind": "nav",
+      "refersTo": "rail",
+      "description": "Flat civic rail: bilingual group label, 36 px white pills, active = civic-700 + 3 px white inline-start bar.",
+      "html": "<nav class=\"ds-rail\" aria-label=\"Основное меню\"><p class=\"ds-rail-group\"><span lang=\"kk\">Қор</span> · Фонд</p><a href=\"#\" class=\"ds-rail-link\">Поиск</a><a href=\"#\" class=\"ds-rail-link\" aria-current=\"page\">Дела</a><a href=\"#\" class=\"ds-rail-link\">Ошибки <span class=\"ds-rail-count\">4</span></a></nav>",
+      "css": ".ds-rail{width:220px;padding:0 8px 16px;background:#0B3A6E;display:flex;flex-direction:column;gap:2px} .ds-rail-group{margin:0;padding:16px 12px 4px;font:500 10px/20px var(--font-plate,'Fira Sans Condensed',sans-serif);text-transform:uppercase;letter-spacing:.06em;color:#BCD6F7} .ds-rail-link{display:flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border-radius:6px;color:#fff;text-decoration:none;font:500 14px/20px var(--font-sans,'Fira Sans',sans-serif);transition:background-color .15s} .ds-rail-link:hover,.ds-rail-link[aria-current=page]{background:#1C508C} .ds-rail-link[aria-current=page]{box-shadow:inset 3px 0 0 0 #fff} .ds-rail-link:focus-visible{outline:2px solid #fff;outline-offset:0} .ds-rail-count{margin-inline-start:auto;padding:2px 8px;border-radius:6px;background:#9F0712;color:#fff;font-size:12px;font-variant-numeric:tabular-nums}"
+    },
+    {
+      "name": "Header Search",
+      "kind": "input",
+      "refersTo": "header-search",
+      "description": "Input sunk into the civic header field; focus is a 2 px white inset ring.",
+      "html": "<input class=\"ds-header-search\" placeholder=\"Поиск по архиву\" aria-label=\"Поиск\">",
+      "css": ".ds-header-search{height:36px;width:280px;padding:0 12px;border:0;border-radius:6px;background:#042851;color:#fff;box-shadow:inset 0 0 0 1px #6D9FDE;font:400 14px/20px var(--font-sans,'Fira Sans',sans-serif)} .ds-header-search::placeholder{color:#BCD6F7} .ds-header-search:focus-visible{outline:none;box-shadow:inset 0 0 0 2px #fff}"
+    },
+    {
+      "name": "ShifrPlate",
+      "kind": "custom",
+      "refersTo": "shifr-plate",
+      "description": "The archive address as enamel plates with bilingual micro-labels; gold dot on the current segment.",
+      "html": "<div class=\"ds-plates\" role=\"group\" aria-label=\"Шифр: фонд 1, опись 1, дело 15, лист 3\"><span class=\"ds-plate\"><span class=\"ds-plate-label\" aria-hidden=\"true\"><span lang=\"kk\">Қор</span> · Фонд</span><span class=\"ds-plate-value\">Ф.1</span></span><span class=\"ds-chev\" aria-hidden=\"true\">›</span><span class=\"ds-plate\"><span class=\"ds-plate-label\" aria-hidden=\"true\"><span lang=\"kk\">Тізімдеме</span> · Опись</span><span class=\"ds-plate-value\">Оп.1</span></span><span class=\"ds-chev\" aria-hidden=\"true\">›</span><a href=\"#\" class=\"ds-plate\"><span class=\"ds-plate-label\" aria-hidden=\"true\"><span lang=\"kk\">Іс</span> · Дело</span><span class=\"ds-plate-value\">Д.15</span></a><span class=\"ds-chev\" aria-hidden=\"true\">›</span><span class=\"ds-plate\" aria-current=\"page\"><span class=\"ds-plate-label\" aria-hidden=\"true\"><span lang=\"kk\">Парақ</span> · Лист</span><span class=\"ds-plate-value\">л.3</span><span class=\"ds-plate-dot\" aria-hidden=\"true\"></span></span></div>",
+      "css": ".ds-plates{display:flex;flex-wrap:wrap;align-items:center;gap:8px 4px;font-family:var(--font-plate,'Fira Sans Condensed',sans-serif)} .ds-chev{font-size:20px;line-height:1;font-weight:600;color:var(--ui-secondary,#0B3A6E);padding:0 2px} .ds-plate{position:relative;display:inline-flex;flex-direction:column;justify-content:center;height:40px;padding:0 12px;border-radius:6px;background:#0B3A6E;color:#fff;white-space:nowrap;text-decoration:none;box-shadow:inset 0 0 0 3px #0B3A6E,inset 0 0 0 4px rgb(255 255 255/.55);transition:background-color .15s} a.ds-plate:hover{background:#1C508C} a.ds-plate:focus-visible{outline:3px solid #0B6FA7;outline-offset:2px} .ds-plate-label{font-size:10px;line-height:12px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:#BCD6F7} .ds-plate-value{font-size:18px;line-height:20px;font-weight:600;letter-spacing:.02em;font-variant-numeric:tabular-nums} .ds-plate-dot{position:absolute;top:-4px;inset-inline-end:-4px;width:10px;height:10px;border-radius:9999px;background:#F2B705;box-shadow:0 0 0 1.5px #12202E,0 0 0 3px #fff}"
+    },
+    {
+      "name": "ScriptBadge and YearChip",
+      "kind": "chip",
+      "refersTo": "script-badge",
+      "description": "Per-entry furniture: ink script chip (attribute, never status) and civic-outline year chip.",
+      "html": "<span class=\"ds-chip ds-script\" title=\"Казахский, арабская графика (төте)\">KK-араб</span> <span class=\"ds-chip ds-year\">1928–1931</span>",
+      "css": ".ds-chip{display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:5px;font:700 12px/16px var(--font-plate,'Fira Sans Condensed',sans-serif);letter-spacing:.06em;font-variant-numeric:tabular-nums;white-space:nowrap} .ds-script{background:#12202E;color:#fff} .ds-year{color:#0B3A6E;box-shadow:inset 0 0 0 1.5px #0B3A6E}"
+    },
+    {
+      "name": "Text-pane words",
+      "kind": "custom",
+      "refersTo": "low-confidence-word",
+      "description": "Selected line band; low word (amber fill + dashed rule), hit, corrected (dotted), selected (ink ring).",
+      "html": "<p class=\"ds-line\"><span class=\"ds-ln\">6</span> исполкома, <span class=\"ds-w ds-low\">заведуюший</span> городским <span class=\"ds-w ds-hit ds-sel\">отделом</span> <span class=\"ds-w ds-corr\">народного</span></p>",
+      "css": ".ds-line{margin:0;padding:2px 4px;background:color-mix(in srgb,#0B3A6E 7%,transparent);font:400 16px/24px var(--font-sans,'Fira Sans',sans-serif);color:#12202E} .ds-ln{display:inline-block;width:2.5rem;padding-inline-end:12px;text-align:end;font-size:13px;font-weight:700;color:#0B3A6E;font-variant-numeric:tabular-nums} .ds-w{padding:0 2px;border-radius:2px;border-bottom:2px solid transparent;cursor:pointer} .ds-w:hover{background:#E4ECF6} .ds-w:focus-visible{outline:2px solid #0B6FA7;outline-offset:3px} .ds-low{background:#FEF3C6;border-bottom:2px dashed #973C00} .ds-hit{background:#A2F4FD} .ds-sel{box-shadow:0 0 0 2px #12202E} .ds-corr{text-decoration:underline dotted #657182 1px;text-underline-offset:4px}"
+    },
+    {
+      "name": "Soft Status Badges",
+      "kind": "chip",
+      "description": "Every status badge is soft; success stays quiet in long lists.",
+      "html": "<span class=\"ds-badge ds-b-warn\">на проверке</span> <span class=\"ds-badge ds-b-ok\">проверено</span> <span class=\"ds-badge ds-b-err\">ошибка</span> <span class=\"ds-quiet\">✓ успешно</span>",
+      "css": ".ds-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font:500 12px/16px var(--font-sans,'Fira Sans',sans-serif)} .ds-b-warn{color:#973C00;background:rgb(151 60 0/.1)} .ds-b-ok{color:#016630;background:rgb(1 102 48/.1)} .ds-b-err{color:#9F0712;background:rgb(159 7 18/.1)} .ds-quiet{font:400 14px/20px var(--font-sans,'Fira Sans',sans-serif);color:#505C6B}"
+    }
+  ],
+  "narrative": {
+    "northStar": "\"Адрес архива\" (The Archive Address)",
+    "overview": "The world is Astana's bilingual municipal wayfinding. The archive is signed the way the city signs its streets. Two flat civic-blue fields, a 220 px rail and a 56 px header, meet in an L. Together they read as one sign, and there is no grey chrome anywhere. Every case and leaf carries its address on rounded enamel plates (Ф.1 › Оп.1 › Д.15 › л.3), each with a stacked Kazakh/Russian micro-label (ҚОР · ФОНД). On the page viewer, selecting a word drops a gold pin on its box on the scan. A gold-and-ink leader then joins the pin to that word's row in the text. The scan is the authority, and the system's job is to show where each word lives.\n\nDensity is that of a working tool. Sessions are long and repetitive, on 1920×1080 office monitors, with a view-only mobile reader at 375 px. White panels sit on a cool ground, and controls are 36 px tall. The text is Fira Sans, a signage grotesk, with a condensed cut for the plates. Each colour has one job. Civic blue is the place, action blue is what you can press, gold is \"you are here\", and amber and red appear only where confidence or a failure means something.\n\nThe world was defined against two confirmed rejections. **Museum costume** is parchment, serif nostalgia or ornament standing in for the archive. **Grey bureaucracy** is a neutral admin dashboard where the scan and the text are two unrelated grey cards. The finish review's verdict on the shipped build was to keep the address plates with their gold dot, the pin and its gold-and-ink leader, and the flat civic rail and header. Spread them further; don't tone them down.",
+    "keyCharacteristics": [
+      "Flat civic-blue fields at region scale: the rail and header, with no borders between them.",
+      "Address plates with bilingual micro-labels on every screen that names a case or a leaf.",
+      "Gold appears only as \"you are here\", and always paired with ink.",
+      "Two-tone overlays on the scan, so every mark holds on white, yellowed and dark paper.",
+      "Tabular figures for every шифр, count, percentage and date.",
+      "Every script is first-class: Kazakh Cyrillic, Latin «яналиф» and Arabic «төте» (RTL, Noto Naskh).",
+      "Fully offline. Fonts and icons are bundled, and nothing is fetched at runtime."
+    ],
+    "rules": [
+      {
+        "name": "The One Job Rule",
+        "body": "Each colour has one job. If a new use needs civic, action, gold, amber, red or cyan for something outside its listed job, the answer is a neutral, not a new meaning.",
+        "section": "colors"
+      },
+      {
+        "name": "The Gold Means Here Rule",
+        "body": "Gold marks the current position (the pin, the leader and the current plate's dot) and never a button, a warning, a count or decoration. It is never shown without ink beside it.",
+        "section": "colors"
+      },
+      {
+        "name": "The Flat Field Rule",
+        "body": "Colour commits at region scale. The rail and header are flat civic fields with no gradients, borders or grey chrome. On them, text and icons are white or civic-label, and `text-success`, `text-error` and `text-warning` are banned on `bg-rail`.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Every шифр, count, percentage, date, time and countdown is set with `tabular-nums`. Numbers in the archive line up like house numbers.",
+        "section": "typography"
+      },
+      {
+        "name": "The Plate Face Rule",
+        "body": "The condensed face is reserved for address furniture: plates, micro-labels, rail group labels, chips and leaf captions. Body copy and headings never use it.",
+        "section": "typography"
+      },
+      {
+        "name": "The Shared Line Grid Rule",
+        "body": "Scan and text sit on one line grid. The selected line gets the same 7 % civic band in both panes. On the scan, its number sits on the scan's inline-start edge as a civic numeral on a white keyline. In the text pane, the line number turns civic and bold. When the scan's line pitch is too small to align rows, the text keeps its own rhythm and the band and the leader carry the link.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Surfaces are flat at rest. A shadow in this system is a rule, a ring or a keyline with a job. It is never ambient decoration, except the one paper lift under the scan.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** put the address on every case and leaf. Use ShifrPlate where the address is the subject and the compact variant in dense rows, in the same position on every screen.",
+      "**Do** use the semantic aliases and Nuxt UI colours (`bg-rail`, `text-secondary`, `bg-locator`, `bg-hit`, `bg-line-band`, `text-muted`), and add an alias to `main.css` before you use a new colour role.",
+      "**Do** keep one solid primary per view or list. Everything else is neutral outline or ghost.",
+      "**Do** confirm destructive actions in a dialog that names the loss. The red button lives only inside that dialog.",
+      "**Do** keep success quiet in long lists, and let errors be the only red.",
+      "**Do** draw every scan mark two-tone (white halo plus ink core), and tell overlay types apart by stroke and fill style.",
+      "**Do** set every number tabular, every `kk-arab` run RTL in Noto Naskh, and every mixed list `dir=\"auto\"`.",
+      "**Do** keep every interactive target at 36 px or more, and test focus on both light and civic grounds.",
+      "**Do** bundle every font and icon (`@fontsource`, local `@iconify-json/lucide`), then run `pnpm check:offline` and `pnpm check:glyphs` before shipping.",
+      "**Do** re-run `python3 scripts/design/contrast_tokens.py` after any token change."
+    ],
+    "donts": [
+      "**Don't** dress the archive in **museum costume**: no parchment textures, sepia, serif nostalgia, seals or ornament standing in for \"archive\". The scan is the only old paper on screen.",
+      "**Don't** fall back to **grey bureaucracy**: no neutral grey chrome around the work, and no scan and text as two unrelated grey cards. The shell is civic blue, and the panes share one line grid.",
+      "**Don't** use gold for anything but \"you are here\", and never show it without ink.",
+      "**Don't** use action blue for decoration, status, location or hits, and don't use `UButton color=\"secondary\"`.",
+      "**Don't** use red on a trigger, a toolbar or a list row, and don't use amber where confidence isn't the subject.",
+      "**Don't** put `text-success`, `text-error` or `text-warning` on the civic fields, and don't signal ЕАИС state by dot colour alone.",
+      "**Don't** use dimmed text on elevated or scan-pane grounds.",
+      "**Don't** hand-roll script badges or year chips, and don't give the script badge a status colour.",
+      "**Don't** add ambient shadows, gradients or borders to panels.",
+      "**Don't** take the condensed plate face or the uppercase micro-label outside address furniture. They label plates and rail groups. They are not eyebrows above headings.",
+      "**Don't** load anything from a CDN, Google Fonts, the Iconify API or analytics."
+    ]
+  }
+}

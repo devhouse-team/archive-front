@@ -50,3 +50,10 @@
 - [ ] Leaf-navigation address labels («← л.2 · 3 из 5 · л.4 →») need neighbouring leaf numbers from the API.
 - [ ] **Needs the user:** run the role smoke (`scripts/smoke-roles.mjs`) and the viewer check against the real backend. Permission-system denials blocked both for agents.
 - [ ] Still open from earlier stages: boot performance on a normal desktop, the failed-OCR jobs list on /ops, the header search box decision, `/api/dela` langs, the delete-collection modal blanking, pagination on real data, UModal instead of `window.confirm`, the gap-tile footer.
+
+## From the Stage 10 docs review (minor)
+- [ ] DESIGN.md: the empty-state rule doesn't cover the shipped «all clear» success variant (/errors, /review) or the /search fuzzy-retry primary. Record them as exceptions, or align the screens.
+- [ ] DESIGN.md: reset actions are neutral ghost on /dela but neutral outline on /search. Pick one rule.
+- [ ] DESIGN.md: the scan-side line band also has 1 px civic 22 % top and bottom rules; document them.
+- [ ] DESIGN.md / design.json: other mentions of the header-search token and component should also be marked "specimen only".
+- [ ] docs/FRONTEND_HANDOFF.md §4 still says `conf < 60`. Note the `low_word_conf` drift there, or ask the backend owner to update the handoff.

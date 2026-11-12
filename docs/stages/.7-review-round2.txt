@@ -1,0 +1,7 @@
+## Verdict: PASS
+Counts: critical 0, major 0, minor 1
+
+1. [minor] app/pages/ops.vue:42-45 — a cold load of /ops makes 2 queue requests at mount (the shell's first poll and loadQueue() while the store is still empty); steady state is one per tick. Fix (Stage 9): dedupe the in-flight request in useQueueStore().refresh().
+
+Major re-verified live: placeholders 72×30 inside the 80 px box, no overflow, «Превью / недоступно» on two lines; the modal size is fine. No regressions in minors 2, 3, 6 and 7. All mutations were intercepted; :8000 untouched.
+Checks: eslint (Stage 7) 0, test/ops 20/20.

@@ -2,6 +2,8 @@
 import type { FileStatus, M1File, Workplace } from '~/types/api'
 import type { ShifrInput } from '~/composables/useOps'
 import { errorText, OPS_POLL_MS, shifrErrors, uploadFilesWithProgress } from '~/composables/useOps'
+import { useAuthStore } from '~/stores/auth'
+import { useQueueStore } from '~/stores/queue'
 import { ACCESS } from '~/utils/access'
 import { isApiError } from '~/utils/api-error'
 import { FILE_STATUS } from '~/utils/status'
@@ -71,9 +73,12 @@ async function send(files: File[]) {
     saved.value = { names: r.saved.map(baseName), workplace: r.workplace }
     notify(t('upload.sentToast'), 'success')
     void loadFiles()
+    void useQueueStore().refresh().catch(() => {})
   }
   catch (e) {
     if (isApiError(e) && e.kind === 'unauthorized') {
+      // Same as the shared client's 401 path: drop the session, then /login?next=.
+      useAuthStore().clear()
       await navigateTo({ path: '/login', query: { next: route.fullPath } }, { replace: true })
       return
     }
@@ -149,6 +154,7 @@ async function sendNow(f: M1File) {
   try {
     await api.m1.retryFile(f.id)
     notify(t('upload.sendNowDone'), 'success')
+    void useQueueStore().refresh().catch(() => {})
     await loadFiles()
   }
   catch {
@@ -237,7 +243,7 @@ async function sendNow(f: M1File) {
             accept=".tif,.tiff,.jpg,.jpeg,.png,.pdf"
             class="hidden"
             tabindex="-1"
-            aria-hidden="true"
+            :aria-label="t('upload.drop.pick')"
             @change="onPicked"
           >
         </div>

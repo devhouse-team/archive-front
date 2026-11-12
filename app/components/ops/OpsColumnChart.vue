@@ -25,12 +25,18 @@ function height(v: number): string {
   return `max(3px, ${(v / max.value) * 100}%)`
 }
 
+/** With many columns only the first and last period are labelled, so labels never truncate; the table has all. */
+function showLabel(i: number): boolean {
+  const n = props.rows.length
+  return n <= 6 || i === 0 || i === n - 1
+}
+
 const fill = computed(() => props.tone === 'error' ? 'bg-error' : 'bg-meter')
 </script>
 
 <template>
   <figure class="flex min-w-0 flex-col gap-3">
-    <figcaption class="flex items-baseline justify-between gap-2">
+    <figcaption class="flex flex-col gap-0.5">
       <span class="text-sm font-medium text-highlighted">{{ title }}</span>
       <span class="text-xs text-muted tabular-nums">{{ t('ops.stats.total', { total: nf.format(total) }) }}</span>
     </figcaption>
@@ -69,10 +75,14 @@ const fill = computed(() => props.tone === 'error' ? 'bg-error' : 'bg-meter')
         aria-hidden="true"
       >
         <span
-          v-for="row in rows"
+          v-for="(row, i) in rows"
           :key="row.period"
-          class="min-w-0 flex-1 truncate text-center text-xs text-muted tabular-nums"
-        >{{ row.label }}</span>
+          class="relative h-4 min-w-0 flex-1 text-xs text-muted tabular-nums"
+        ><span
+          v-if="showLabel(i)"
+          class="absolute top-0 whitespace-nowrap"
+          :class="rows.length <= 6 ? 'inset-x-0 text-center' : i === 0 ? 'start-0' : 'end-0'"
+        >{{ row.label }}</span></span>
       </div>
     </div>
   </figure>

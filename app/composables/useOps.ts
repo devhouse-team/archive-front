@@ -164,7 +164,6 @@ export function uploadFilesWithProgress(
     }
     const xhr = new XMLHttpRequest()
     xhr.open('POST', '/api/upload')
-    xhr.withCredentials = false
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && e.total > 0) onProgress(e.loaded / e.total)
     }

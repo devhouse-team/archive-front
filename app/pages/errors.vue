@@ -2,6 +2,7 @@
 import type { TableColumn } from '@nuxt/ui'
 import type { M1File } from '~/types/api'
 import { canResend, errorText, fileShifr, OPS_POLL_MS } from '~/composables/useOps'
+import { useQueueStore } from '~/stores/queue'
 import { ACCESS } from '~/utils/access'
 import { formatTimestamp } from '~/utils/format'
 
@@ -40,11 +41,31 @@ function openFix(f: M1File) {
   modalOpen.value = true
 }
 
+const heading = useTemplateRef<HTMLHeadingElement>('heading')
+const queueStore = useQueueStore()
+
+/**
+ * After a fix or a resend the row usually leaves the list, taking the focused button with it. Focus moves to the
+ * same row's «Исправить шифр» if it is still there (it failed again), else the next row's, else the heading.
+ * The short wait lets the modal finish returning focus to its trigger first.
+ */
+async function refocus(id: number, index: number) {
+  await Promise.all([load(), new Promise(r => setTimeout(r, 300))])
+  await nextTick()
+  const list = rows.value ?? []
+  const target = list.find(r => r.id === id) ?? list[Math.min(index, list.length - 1)]
+  const el = target ? document.querySelector<HTMLElement>(`[data-fix-id="${target.id}"]`) : null
+  ;(el ?? heading.value)?.focus()
+}
+
 /** After a fix or a resend the backend re-validates at once; an «invalid» answer is a new error. */
 function report(row: M1File) {
   if (row.status === 'invalid') notify(t('errors_screen.againToast', { reason: row.error_reason ?? '' }), 'error')
   else notify(t('errors_screen.sentToast'), 'success')
-  void polling.trigger()
+  const index = (rows.value ?? []).findIndex(r => r.id === row.id)
+  void refocus(row.id, Math.max(0, index))
+  // The rail's «Ошибки» counter follows at once instead of on the shell's next poll.
+  void queueStore.refresh().catch(() => {})
 }
 
 async function resend(f: M1File) {
@@ -77,7 +98,11 @@ const tableUi = {
 
 <template>
   <div class="mx-auto flex max-w-[1440px] flex-col gap-4">
-    <h1 class="sr-only">
+    <h1
+      ref="heading"
+      tabindex="-1"
+      class="sr-only"
+    >
       {{ t('errors_screen.title') }}
     </h1>
     <p
@@ -163,6 +188,7 @@ const tableUi = {
           <UButton
             icon="i-lucide-pencil"
             :label="t('errors_screen.fix')"
+            :data-fix-id="row.original.id"
             :aria-label="t('errors_screen.fixFor', { name: row.original.name })"
             @click="openFix(row.original)"
           />

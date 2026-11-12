@@ -48,15 +48,16 @@ const series = computed(() => (['uploaded', 'pages', 'errors'] as const).map(key
 })))
 
 const periodItems = computed(() => [
-  { label: t('ops.stats.day'), value: 'day' },
-  { label: t('ops.stats.month'), value: 'month' },
+  { label: t('ops.stats.day'), value: 'day' as const },
+  { label: t('ops.stats.month'), value: 'month' as const },
 ])
 
+const NUM = { th: 'text-end', td: 'text-end' }
 const columns = computed<TableColumn<StatsRow>[]>(() => [
   { accessorKey: 'period', header: t('ops.stats.period'), cell: ({ row }) => periodLabel(row.original.period) },
-  { accessorKey: 'uploaded', header: t('ops.stats.uploaded') },
-  { accessorKey: 'pages', header: t('ops.stats.pages') },
-  { accessorKey: 'errors', header: t('ops.stats.errors') },
+  { accessorKey: 'uploaded', header: t('ops.stats.uploaded'), meta: { class: NUM } },
+  { accessorKey: 'pages', header: t('ops.stats.pages'), meta: { class: NUM } },
+  { accessorKey: 'errors', header: t('ops.stats.errors'), meta: { class: NUM } },
 ])
 const tableUi = { th: 'bg-elevated py-2.5', td: 'py-2.5 tabular-nums text-default' }
 </script>
@@ -74,13 +75,21 @@ const tableUi = { th: 'bg-elevated py-2.5', td: 'py-2.5 tabular-nums text-defaul
         {{ t('ops.stats.title') }}
       </h2>
       <div class="flex flex-wrap items-center gap-2">
-        <UTabs
-          v-model="period"
-          :items="periodItems"
-          :content="false"
+        <!-- Day/month is a pressed-state pair, not tabs: there is no panel per period. -->
+        <UFieldGroup
+          role="group"
           :aria-label="t('ops.stats.periodLabel')"
-          color="neutral"
-        />
+        >
+          <UButton
+            v-for="item in periodItems"
+            :key="item.value"
+            color="neutral"
+            :variant="period === item.value ? 'solid' : 'outline'"
+            :label="item.label"
+            :aria-pressed="period === item.value"
+            @click="period = item.value"
+          />
+        </UFieldGroup>
         <UButton
           color="neutral"
           variant="outline"

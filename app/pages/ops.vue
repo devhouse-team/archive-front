@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { JournalRow, QueueCounters } from '~/types/api'
+import type { JournalRow } from '~/types/api'
+import { useQueueStore } from '~/stores/queue'
 import { ACCESS } from '~/utils/access'
 import { errorText, OPS_POLL_MS } from '~/composables/useOps'
 
@@ -9,15 +10,18 @@ definePageMeta({ roles: ACCESS.ops, title: 'pages.ops' })
 const { t } = useT()
 const api = useApi()
 
-const queue = ref<QueueCounters | null>(null)
+// Counters come from the queue store, which the shell already polls every 5 s (no second request here).
+const queueStore = useQueueStore()
+const queue = computed(() => queueStore.queue)
 const queueError = ref<string | null>(null)
 const events = ref<JournalRow[] | null>(null)
 const eventsError = ref<string | null>(null)
 const loading = ref(true)
 
+/** Only when the store has nothing yet (first visit, or its last poll failed): one direct refresh with an error state. */
 async function loadQueue() {
   try {
-    queue.value = await api.m1.queue('background')
+    await queueStore.refresh()
     queueError.value = null
   }
   catch (e) {
@@ -35,13 +39,13 @@ async function loadEvents() {
   }
 }
 
-async function refresh() {
-  await Promise.all([loadQueue(), loadEvents()])
+onMounted(async () => {
+  if (!queueStore.queue) await loadQueue()
   loading.value = false
-}
+})
 
-// Handoff §4: the queue is polled only while this screen is mounted; usePolling stops on unmount.
-const polling = usePolling(refresh, OPS_POLL_MS)
+// Handoff §4: recent events are polled only while this screen is mounted; usePolling stops on unmount.
+const polling = usePolling(loadEvents, OPS_POLL_MS)
 
 const waiting = computed(() => (queue.value?.files.queued ?? 0) + (queue.value?.files.retry ?? 0))
 </script>
@@ -60,7 +64,7 @@ const waiting = computed(() => (queue.value?.files.queued ?? 0) + (queue.value?.
       variant="soft"
       icon="i-lucide-circle-alert"
       :title="queueError"
-      :actions="[{ label: t('ops.reload'), color: 'neutral', variant: 'outline', onClick: () => polling.trigger() }]"
+      :actions="[{ label: t('ops.reload'), color: 'neutral', variant: 'outline', onClick: loadQueue }]"
     />
     <OpsStatTiles
       v-else
@@ -72,7 +76,7 @@ const waiting = computed(() => (queue.value?.files.queued ?? 0) + (queue.value?.
       <OpsStatsPanel />
       <OpsRecentEvents
         :rows="events"
-        :loading="loading"
+        :loading="!events && !eventsError"
         :error="eventsError"
         @retry="polling.trigger()"
       />

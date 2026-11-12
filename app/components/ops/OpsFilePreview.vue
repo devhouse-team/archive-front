@@ -33,15 +33,17 @@ const box = computed(() => props.size === 'lg' ? 'w-full max-w-[400px] aspect-[3
     >
     <span
       v-else
-      class="flex flex-col items-center gap-1 p-1 text-center text-muted"
-      :class="size === 'lg' ? 'text-sm' : 'text-xs leading-tight'"
+      lang="ru"
+      class="flex w-full min-w-0 flex-col items-center gap-1 whitespace-normal text-center text-muted"
+      :class="size === 'lg' ? 'p-3 text-sm' : 'px-1 text-xs leading-tight'"
     >
       <UIcon
         name="i-lucide-image-off"
         :class="size === 'lg' ? 'size-8' : 'size-4'"
         aria-hidden="true"
       />
-      {{ t('errors_screen.previewUnavailable') }}
+      <!-- The small box is 80 px wide: the two words stack and long words may hyphenate, never clip. -->
+      <span class="w-full min-w-0 whitespace-normal break-words hyphens-auto">{{ t('errors_screen.previewUnavailable') }}</span>
     </span>
   </div>
 </template>

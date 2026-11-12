@@ -70,6 +70,8 @@ describe('«Отправить повторно» rule (handoff §9)', () => {
     expect(resend).toHaveLength(1)
     expect(resend[0]!.attributes('aria-label')).toBe('Отправить повторно: scan-4.tif')
     expect(w.findAll('button').filter(b => b.text().includes('Исправить шифр'))).toHaveLength(4)
+    // Focus targets after a row leaves the list (review round 1 minor 6).
+    expect(w.findAll('button[data-fix-id]')).toHaveLength(4)
     for (const p of SERVER_PATHS) expect(w.html()).not.toContain(p)
     w.unmount()
   }, 30_000)
@@ -140,31 +142,39 @@ describe('шифр digit validation', () => {
 
 describe('ops panel polling', () => {
   let queueCalls = 0
+  let journalCalls = 0
   beforeEach(() => {
     queueCalls = 0
+    journalCalls = 0
     registerEndpoint('/api/m1/queue', () => {
       queueCalls++
       return QUEUE
     })
-    registerEndpoint('/api/m1/journal', () => [])
+    registerEndpoint('/api/m1/journal', () => {
+      journalCalls++
+      return []
+    })
     registerEndpoint('/api/m1/stats', () => [])
   })
   afterEach(() => vi.useRealTimers())
 
-  it('polls the queue while mounted and stops on unmount', async () => {
+  it('polls recent events while mounted, stops on unmount, and leaves queue polling to the shell store', async () => {
     useAppPinia()
     vi.useFakeTimers({ shouldAdvanceTime: true })
     const { default: OpsPage } = await import('~/pages/ops.vue')
     const w = await mountSuspended(OpsPage)
-    await vi.waitFor(() => expect(queueCalls).toBeGreaterThanOrEqual(1))
+    await vi.waitFor(() => expect(journalCalls).toBeGreaterThanOrEqual(1))
+    // One direct queue load while the store is empty, then none of its own.
+    await vi.waitFor(() => expect(queueCalls).toBe(1))
     await vi.advanceTimersByTimeAsync(10_000)
     await flushPromises()
-    const whileMounted = queueCalls
+    const whileMounted = journalCalls
     expect(whileMounted).toBeGreaterThanOrEqual(2)
+    expect(queueCalls).toBe(1)
     w.unmount()
     await vi.advanceTimersByTimeAsync(30_000)
     await flushPromises()
-    expect(queueCalls).toBe(whileMounted)
+    expect(journalCalls).toBe(whileMounted)
   })
 
   it('renders the tiles with links to the filtered screens', async () => {

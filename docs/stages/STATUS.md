@@ -11,7 +11,7 @@ Owner: `orchestrator` agent. Plan: stages 0–10. A stage is done only with a re
 | 4 | Shell + auth | §6 #1 Login, #12 bell, app shell, header ЕАИС indicator | done (review PASS round 1) | 2026-11-12 |
 | 5 | M2 page viewer | §6 #6 Страница + impeccable finish review + `DESIGN.md` via impeccable-documenter | in progress (parallel) | |
 | 6 | M3 search + collections | §6 #8 Поиск, #9 Подборки | in progress (parallel) | |
-| 7 | M1 operator | §6 #2 Панель, #3 Загрузка, #4 Ошибки, #10 Журнал | in progress (parallel) | |
+| 7 | M1 operator | §6 #2 Панель, #3 Загрузка, #4 Ошибки, #10 Журнал | done (review PASS round 2) | 2026-11-12 |
 | 8 | Cases, review, admin | §6 #5 Дела, #7 Очередь проверки, #11 Администрирование | in progress (parallel) | |
 | 9 | Harden + finish | impeccable harden/adapt/optimize/polish, finish review | todo | |
 | 10 | Document | DESIGN.md from shipped code, CLAUDE.md | todo | |

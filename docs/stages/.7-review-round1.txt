@@ -1,0 +1,14 @@
+## Verdict: FAIL
+Counts: critical 0, major 1, minor 7
+
+1. [major] app/components/ops/OpsFilePreview.vue:34-44 — the size="sm" 404/415 placeholder clips to «евью недоступ» in the errors table. Fix: wrap inside 72 px; re-screenshot.
+2. [minor] app/pages/ops.vue:20,44 — /ops duplicates the shell queue-store polling of /api/m1/queue. Fix: use the store.
+3. [minor] app/components/ops/OpsStatsPanel.vue:78-84 — UTabs content=false: role=tab without a tabpanel. Fix: aria-pressed buttons or a radio group.
+4. [minor] app/components/ops/OpsStatTiles.vue:29 — «Загружено сегодня» links to all uploaded files.
+5. [minor] app/pages/journal.vue:111, OpsRecentEvents.vue:99 — journal details show inbox relpaths (ws1/1/1/12/blank.png), while /upload strips them to the base name. Decide the policy.
+6. [minor] OpsFixShifrModal.vue:43 / errors.vue:47 — focus falls to body after a successful save.
+7. [minor] app/pages/upload.vue:236-245 — the hidden file input has no label (not reachable; the button is the keyboard path).
+8. [minor] app/composables/useOps.ts:128 — check-case uses 'silent' mode, so a 401 doesn't redirect. Fix in shared useApi ('background').
+
+Verified clean: role gating; §9 retry hiding; no server paths; polling stops on leave; case check found/not found; шифр validation with aria; error mapping incl. the XHR; modal focus trap and return; chart text alternative; 36 px targets; text status badges; contrast; states; source scan.
+Checks: typecheck 0, eslint (Stage 7) 0, test/ops 20/20.

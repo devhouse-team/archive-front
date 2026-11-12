@@ -343,8 +343,32 @@ export function createMockApi(fixtures: MockFixtures) {
 
   // 5.2 M1
   on('POST', '/api/upload', (req) => {
-    require(req, STAFF)
-    throw new HttpError(400, 'Загрузка файлов недоступна в демо-режиме без сервера')
+    const user = require(req, STAFF)
+    // Stage 11a: the Nitro handler passes multipart uploads as `{files: [name], workplace, fond, opis, delo}`.
+    // Without files (the unit tests, an empty form) the old demo answer stays.
+    const up = (req.body ?? {}) as { files?: string[], workplace?: string, fond?: string, opis?: string, delo?: string }
+    if (!up.files?.length) throw new HttpError(400, 'Загрузка файлов недоступна в демо-режиме без сервера')
+    const workplace = up.workplace === 'ws2' ? 'ws2' : 'ws1'
+    const manual = [up.fond, up.opis, up.delo].every(v => v && /^\d+$/.test(v))
+    const [fond, opis, delo] = manual ? [int(up.fond), int(up.opis), int(up.delo)] : [null, null, null]
+    const known = manual && eaisCases.some(c => c.fond === fond && c.opis === opis && c.delo === delo)
+    const saved: string[] = []
+    for (const name of up.files) {
+      const leaf = manual ? files.filter(f => f.fond === fond && f.opis === opis && f.delo === delo).length + 1 : null
+      const status: FileStatus = !manual || !known ? 'invalid' : eaisOnline ? 'uploaded' : 'retry'
+      const relpath = manual ? `${workplace}/${fond}/${opis}/${delo}/${name}` : `${workplace}/${name}`
+      files.push({
+        id: nextId(), workplace, src_relpath: relpath, name, sha256: null, size: null, fmt: null, dpi: 300, n_pages: 1,
+        fond, opis, delo, leaf_start: leaf, shifr_source: manual ? 'folder' : null, status,
+        error_reason: !manual ? 'Шифр не определён' : !known ? 'Дело не найдено в ЕАИС' : null,
+        force: 0, eais_receipt: status === 'uploaded' ? `EAIS-${fond}-${String(nextId()).padStart(6, '0')}` : null, delo_id: null,
+        created_at: now(), updated_at: now(), attempts: 1, next_run_at: null, last_error: null, job_status: null,
+        shifr: manual ? `Ф.${fond} Оп.${opis} Д.${delo} л.${leaf}` : '',
+      })
+      saved.push(relpath)
+    }
+    log(user.username, 'загрузка', 'ok', `${saved.length}`)
+    return { saved, workplace }
   })
   on('GET', '/api/m1/files', (req) => {
     require(req, STAFF)
@@ -383,6 +407,71 @@ export function createMockApi(fixtures: MockFixtures) {
     if (!eaisOnline) return { found: null, detail: 'ЕАИС недоступна' }
     const c = eaisCases.find(x => x.fond === int(req.query.fond) && x.opis === int(req.query.opis) && x.delo === int(req.query.delo))
     return { found: !!c, title: c ? c.title : null }
+  })
+  // Stage 11a: the шифр cascade (handoff §5.2 GET/POST /api/m1/cases). Restricted cases are listed for STAFF;
+  // the operator gets `title: null`.
+  on('GET', '/api/m1/cases', (req) => {
+    const user = require(req, STAFF)
+    const { fond, opis } = req.query
+    if (opis && !fond) throw new HttpError(400, 'Опись указывается вместе с фондом')
+    if (!eaisOnline) throw new HttpError(503, 'ЕАИС недоступна')
+    const sorted = [...eaisCases].sort((a, b) => a.fond - b.fond || a.opis - b.opis || a.delo - b.delo)
+    if (!fond) {
+      const out = new Map<number, { fond: number, fond_creator: string, opisi: Set<number>, n_dela: number }>()
+      for (const c of sorted) {
+        const row = out.get(c.fond) ?? { fond: c.fond, fond_creator: c.fond_creator, opisi: new Set<number>(), n_dela: 0 }
+        row.opisi.add(c.opis)
+        row.n_dela++
+        out.set(c.fond, row)
+      }
+      return [...out.values()].map(r => ({ fond: r.fond, fond_creator: r.fond_creator, n_opisi: r.opisi.size, n_dela: r.n_dela }))
+    }
+    const inFond = sorted.filter(c => c.fond === int(fond))
+    if (!opis) {
+      const out = new Map<number, number>()
+      for (const c of inFond) out.set(c.opis, (out.get(c.opis) ?? 0) + 1)
+      return [...out.entries()].map(([o, n]) => ({ opis: o, n_dela: n }))
+    }
+    return inFond.filter(c => c.opis === int(opis)).map((c) => {
+      const local = [...dela.values()].find(d => d.fond === c.fond && d.opis === c.opis && d.delo === c.delo)
+      return {
+        delo: c.delo,
+        title: c.access === 'restricted' && !EDITORS.includes(user.role) ? null : c.title,
+        year_from: c.year_from,
+        year_to: c.year_to,
+        access: c.access,
+        leaves: local ? local.pages.length : 0,
+      }
+    })
+  })
+  on('POST', '/api/m1/cases', (req) => {
+    const user = require(req, EDITORS)
+    if (!eaisOnline) throw new HttpError(503, 'ЕАИС недоступна')
+    const body = (req.body ?? {}) as Record<string, unknown>
+    const [fond, opis, delo] = ['fond', 'opis', 'delo'].map(k => int(body[k], Number.NaN)) as [number, number, number]
+    if ([fond, opis, delo].some(n => Number.isNaN(n) || n < 1)) throw new HttpError(400, 'Фонд, опись и дело — целые положительные числа')
+    const title = typeof body.title === 'string' ? body.title.trim() : ''
+    if (!title) throw new HttpError(400, 'Укажите заголовок дела')
+    const year = (v: unknown) => (v === undefined || v === null || v === '' ? null : int(v, Number.NaN))
+    const yearFrom = year(body.year_from)
+    const yearTo = year(body.year_to)
+    if ([yearFrom, yearTo].some(y => y !== null && (Number.isNaN(y) || y < 1000 || y > 2100))) throw new HttpError(400, 'Год — четыре цифры')
+    if (yearFrom !== null && yearTo !== null && yearFrom > yearTo) throw new HttpError(400, 'Год начала позже года окончания')
+    if (eaisCases.some(c => c.fond === fond && c.opis === opis && c.delo === delo)) throw new HttpError(409, 'Такой шифр уже есть в ЕАИС')
+    const access: Access = body.access === 'restricted' ? 'restricted' : 'open'
+    const creator = typeof body.fond_creator === 'string' && body.fond_creator.trim()
+      ? body.fond_creator.trim()
+      : eaisCases.find(c => c.fond === fond)?.fond_creator ?? ''
+    const created = {
+      id: nextId(), fond, opis, delo, title, year_from: yearFrom, year_to: yearTo ?? yearFrom,
+      fond_creator: creator, doc_type: typeof body.doc_type === 'string' ? body.doc_type : '', access, files: [],
+    }
+    eaisCases.push(created)
+    log(user.username, 'новое дело в ЕАИС', 'info', title, `Ф.${fond} Оп.${opis} Д.${delo}`)
+    return {
+      status: 201,
+      body: { fond: created.fond, opis: created.opis, delo: created.delo, title, year_from: created.year_from, year_to: created.year_to, access },
+    }
   })
   on('POST', '/api/m1/files/:id/shifr', (req, [id]) => {
     const user = require(req, STAFF)
@@ -429,10 +518,16 @@ export function createMockApi(fixtures: MockFixtures) {
     const user = currentUser(req)
     const { q } = req.query
     const fond = int(req.query.fond, 0)
-    return visibleDela(user)
+    // Stage 11b (handoff §5.3): `opis`, and with `page` the paged shape; without `page` the old plain list.
+    const opis = int(req.query.opis, 0)
+    const rows = visibleDela(user)
       .filter(d => !q || d.shifr.includes(q) || d.title.toLowerCase().includes(q.toLowerCase()))
       .filter(d => !fond || d.fond === fond)
-      .map(summary)
+      .filter(d => !opis || d.opis === opis)
+    if (req.query.page === undefined) return rows.map(summary)
+    const page = Math.max(1, int(req.query.page, 1))
+    const perPage = Math.min(100, Math.max(1, int(req.query.per_page, 25)))
+    return { total: rows.length, page, per_page: perPage, items: rows.slice((page - 1) * perPage, page * perPage).map(summary) }
   })
   on('GET', '/api/dela/:id', (req, [id]) => {
     const d = getDelo(currentUser(req), int(id))

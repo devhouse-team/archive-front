@@ -7,6 +7,7 @@ import { defineComponent, h } from 'vue'
 import { UApp } from '#components'
 import PagePage from '~/pages/page/[id].vue'
 import ViewerTextPane from '~/components/viewer/ViewerTextPane.vue'
+import ViewerContext from '~/components/viewer/ViewerContext.vue'
 import { useAuthStore } from '~/stores/auth'
 import type { PageDetail, Role, User, Word } from '~/types/api'
 import {
@@ -214,8 +215,8 @@ describe('«Распознать заново» never drops edits silently (revi
     const original = window.confirm
     const confirm = vi.fn(() => false)
     window.confirm = confirm
-    const retry = w.findAll('button').find(b => b.text().includes('Распознать заново'))!
-    await retry.trigger('click')
+    // Stage 11c: «Распознать заново» lives in the «Ещё ⋯» menu; the menu item emits retry on the context band.
+    w.findComponent(ViewerContext).vm.$emit('retry')
     await flushPromises()
     expect(confirm).toHaveBeenCalledWith('Распознать страницу заново? Несохранённые правки будут потеряны.')
     expect(retries).toBe(0)
@@ -230,5 +231,101 @@ describe('confidence shown against the threshold', () => {
     expect(confShown(59.9, 60)).toBe('59')
     expect(confShown(96.49, 96.5)).toBe('96,4')
     expect(confShown(97, 96.5)).toBe('97')
+  })
+})
+
+describe('calm viewer (Stage 11c): details hidden in Просмотр, shown in Правка', () => {
+  async function mountPage(role: Role, route: string) {
+    registerEndpoint('/api/pages/3', () => PAGE)
+    setActivePinia(useNuxtApp().$pinia as Pinia)
+    useAuthStore().setUser(user(role))
+    const Shell = defineComponent({ render: () => h(UApp, null, { default: () => h(PagePage) }) })
+    const w = await mountSuspended(Shell, { route })
+    await flushPromises()
+    await new Promise(r => setTimeout(r, 0))
+    await flushPromises()
+    return w
+  }
+
+  it.each(['archivist', 'reader'] as Role[])('%s in Просмотр: one sentence, no language, status, engine, mean, legend, per-line % or «Рамки слов»', async (role) => {
+    const w = await mountPage(role, '/page/3')
+    const text = w.text()
+    expect(text).toContain('Слов для проверки: 2')
+    expect(text).toContain('Подробнее')
+    for (const hidden of ['KK', 'распознано', 'Движок', 'Tesseract', 'Средняя уверенность', 'порог', 'Обозначения', 'исправлено', 'выбранное слово', 'Рамки слов', 'по словам']) {
+      expect(text).not.toContain(hidden)
+    }
+    expect(w.find('[data-testid="viewer-confidence-strip"]').exists()).toBe(false)
+    expect(w.findAll('[data-testid="viewer-line-meta"]')).toHaveLength(0)
+    expect(w.find('[data-testid="viewer-low-nav"]').exists()).toBe(false)
+    expect(w.find('[data-testid="viewer-hints"]').exists()).toBe(true)
+    // The шифр is the compact plate, without micro-labels, linking to the дело.
+    // (The OCR text itself is kk-cyrl and keeps lang="kk"; the header must not carry a Kazakh micro-label.)
+    expect(w.findComponent(ViewerContext).find('[lang="kk"]').exists()).toBe(false)
+    expect(w.find('a[href="/dela/1"]').text()).toContain('Ф.1 Оп.1 Д.15 · л.3')
+  })
+
+  it('archivist in Правка: mean, threshold, legend, per-line % and «Рамки слов» are shown', async () => {
+    const w = await mountPage('archivist', '/page/3?mode=edit')
+    const strip = w.get('[data-testid="viewer-confidence-strip"]')
+    expect(strip.text()).toContain('Средняя уверенность')
+    expect(strip.text()).toContain('70,7 %')
+    expect(strip.text()).toContain('порог 60 %')
+    expect(strip.text()).toContain('выбранное слово')
+    expect(w.findAll('[data-testid="viewer-line-meta"]')).toHaveLength(2)
+    expect(w.text()).toContain('Рамки слов')
+    expect(w.find('[data-testid="viewer-low-nav"]').exists()).toBe(true)
+    // Still folded away in Правка: language, status, engine.
+    expect(w.text()).not.toContain('Движок')
+  })
+
+  it('«Подробнее» opens language, status and engine', async () => {
+    const w = await mountSuspended(ViewerContext, {
+      props: { page: PAGE, threshold: 60, lowCount: 2, canReview: true, canRetry: true, reviewing: false, retrying: false, navQuery: {} },
+      attachTo: document.body,
+    })
+    await w.get('[data-testid="viewer-details"]').trigger('click')
+    await flushPromises()
+    const panel = document.querySelector('[data-testid="viewer-details-panel"]')
+    expect(panel).not.toBeNull()
+    expect(panel!.textContent).toContain('Казахский, кириллица')
+    expect(panel!.textContent).toContain('распознано')
+    expect(panel!.textContent).toContain('на проверке')
+    expect(panel!.textContent).toContain('Tesseract')
+    w.unmount()
+  })
+})
+
+describe('«Ещё ⋯» holds Экспорт and «Распознать заново» with role gating (Stage 11c)', () => {
+  const base = { page: PAGE, threshold: 60, lowCount: 2, reviewing: false, retrying: false, navQuery: {} }
+  const labels = (w: Awaited<ReturnType<typeof mountSuspended>>) => {
+    const menu = w.findComponent({ name: 'UDropdownMenu' })
+    if (!menu.exists()) return null
+    return (menu.props('items') as { label?: string }[][]).flat().map(i => i.label)
+  }
+
+  it('STAFF editor: export formats and re-OCR in the menu, one primary «Отметить проверенной» outside it', async () => {
+    const w = await mountSuspended(ViewerContext, { props: { ...base, canReview: true, canRetry: true } })
+    expect(labels(w)).toEqual(['Скачать страницу', 'Текст (TXT)', 'Данные (JSON)', 'hOCR', 'ALTO XML', 'PDF с текстом', 'Распознать заново'])
+    const buttons = w.findAll('button').map(b => b.text())
+    expect(buttons.some(t => t.includes('Распознать заново'))).toBe(false)
+    expect(buttons.some(t => t.includes('Экспорт'))).toBe(false)
+    expect(buttons.filter(t => t.includes('Отметить проверенной'))).toHaveLength(1)
+  })
+
+  it('operator (STAFF, not editor): export and re-OCR, no «Отметить проверенной»', async () => {
+    const w = await mountSuspended(ViewerContext, { props: { ...base, canReview: false, canRetry: true } })
+    expect(labels(w)).toContain('Распознать заново')
+    expect(w.text()).not.toContain('Отметить проверенной')
+  })
+
+  it('reader: export only', async () => {
+    const w = await mountSuspended(ViewerContext, { props: { ...base, canReview: false, canRetry: false } })
+    expect(labels(w)).toEqual(['Скачать страницу', 'Текст (TXT)', 'Данные (JSON)', 'hOCR', 'ALTO XML', 'PDF с текстом'])
+  })
+
+  it('a page still recognising has no «Ещё ⋯» menu', async () => {
+    const w = await mountSuspended(ViewerContext, { props: { ...base, page: { ...PAGE, status: 'running' }, canReview: true, canRetry: true } })
+    expect(labels(w)).toBeNull()
   })
 })

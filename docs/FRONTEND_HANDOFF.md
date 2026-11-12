@@ -49,7 +49,7 @@ A system for the Astana city archive: **scan → automatic upload (M1) → text 
 | Администрирование `#/admin` (ЕАИС switch, users, health) | ✓ | — | — | — |
 
 - Menu items a role cannot use are **not rendered**.
-- **Restricted cases** (`access: "restricted"`) are visible only to admin and archivist. For everyone else the backend already filters them out of every list, search result, facet, snippet and collection, and returns **404** for direct links. Never show a hint that a hidden case exists. Show the 🔒 badge to editors.
+- **Restricted cases** (`access: "restricted"`) are visible only to admin and archivist. For everyone else the backend already filters them out of every list, search result, facet, snippet and collection, and returns **404** for direct links. Never show a hint that a hidden case exists. Show the 🔒 badge to editors. Exception: the operator tools (`GET /api/m1/check-case`, `GET /api/m1/cases`) list restricted cases with `title: null` (the operator scans them); the reader never sees them.
 
 Role groups used in the API: `STAFF` = admin, archivist, operator. `EDITORS` = admin, archivist.
 
@@ -141,6 +141,8 @@ Demo accounts (password = login): `admin`, `archivist`, `operator`, `reader`.
 | GET | `/api/m1/files/{id}/preview` | S | — | PNG ≤400 px, or 404/415 |
 | GET | `/api/m1/queue` | S | — | counters for the operator panel and menu badges |
 | GET | `/api/m1/check-case` | S | `fond, opis, delo` | `{found, title}`; `found: null` + `detail` if ЕАИС is down. `title` is `null` for a restricted case when the user is an operator |
+| GET | `/api/m1/cases` | S | `fond?`, `opis?` (`opis` needs `fond`, else 400) | cascade from ЕАИС. No params: `[{fond, fond_creator, n_opisi, n_dela}]`; `fond`: `[{opis, n_dela}]`; `fond+opis`: `[{delo, title, year_from, year_to, access, leaves}]` (`leaves` = pages held locally). Restricted cases are listed, `title` is `null` for an operator. ЕАИС down → 503 `{detail}`. Example: `GET /api/m1/cases?fond=7&opis=2` → `[{"delo": 3, "title": "Сведения о школах", "year_from": 1935, "year_to": 1935, "access": "open", "leaves": 0}, "… 3 more"]` |
+| POST | `/api/m1/cases` | E | `{fond, opis, delo, title, year_from?, year_to?, fond_creator?, doc_type?, access?: "open"\|"restricted"}` | 201 `{fond, opis, delo, title, year_from, year_to, access}` («+ Новое дело»). 400 bad input, 409 «Такой шифр уже есть в ЕАИС», 503 ЕАИС down. Mock-only. Example: `{"fond": 7, "opis": 2, "delo": 11, "title": "Новое дело"}` → `{"fond": 7, "opis": 2, "delo": 11, "title": "Новое дело", "year_from": null, "year_to": null, "access": "open"}` |
 | POST | `/api/m1/files/{id}/shifr` | S | `{fond, opis, delo, leaf?}` | file row, requeued («Исправить шифр») |
 | POST | `/api/m1/files/{id}/retry` | S | `{force?: bool}` | file row. On `retry` status it means «Отправить сейчас»; on `invalid` it means «Отправить повторно» |
 | POST | `/api/m1/jobs/{id}/retry` | S | — | retry a failed OCR job |
@@ -172,7 +174,7 @@ Demo accounts (password = login): `admin`, `archivist`, `operator`, `reader`.
 ### 5.3 Дела, pages, review (M2)
 | Method | Path | Who | Params / body | Returns |
 |---|---|---|---|---|
-| GET | `/api/dela` | R | `q` (шифр/title), `fond` | case summaries (restricted hidden for non-editors) |
+| GET | `/api/dela` | R | `q` (шифр/title), `fond`, `opis`, `page` (1-based), `per_page` (default 25, clamp 1..100) | Without `page`: plain list of summaries. With `page`: `{total, page, per_page, items[]}` (`total` counts only cases visible to you; a page past the end gives `items: []`). Order `fond, opis, delo`; restricted hidden for non-editors |
 | GET | `/api/dela/{id}` | R | — | summary + `pages[]` |
 | POST | `/api/dela/{id}/ocr` | E | `{lang: "auto"\|"ru"\|"kk-cyrl"\|"kk-latn"\|"kk-arab"\|"ru-old"}` | `{queued}`. Re-OCRs the whole case and **overwrites manual corrections**, so confirm first |
 | GET | `/api/review` | E | — | pages awaiting review, worst first |
@@ -192,6 +194,9 @@ Demo accounts (password = login): `admin`, `archivist`, `operator`, `reader`.
  "access": "open", "lang_override": null,
  "pages_total": 4, "pages_done": 4, "pages_failed": 0, "gaps": [4], "low_conf": 0,
  "langs": ["ru"]}   // /api/dela items only: sorted distinct page langs (null langs skipped), same as search groups
+
+// GET /api/dela?fond=7&page=1&per_page=2
+{"total": 4, "page": 1, "per_page": 2, "items": ["… 2 items, each as above"]}
 
 // GET /api/dela/{id} → the same fields + pages
 {"…": "…", "pages": [{"id": 9, "leaf": 1, "lang": "ru", "mean_conf": 96.0, "low_conf": 0, "reviewed": 0,
@@ -282,7 +287,8 @@ Demo accounts (password = login): `admin`, `archivist`, `operator`, `reader`.
 | GET | `/mock-eais/api/status` | any session | — | `{online, cases, files}` (counts exclude restricted cases for non-editors) |
 | POST | `/mock-eais/api/status` | A | `{online: bool}` | outage switch for the demo |
 | POST | `/mock-eais/api/cases/{id}/files` | internal token | multipart `leaf`, `file` | `{receipt_id}`. Only the M1 uploader calls it; not for the browser (no token → 401) |
-| GET | `/mock-eais/api/cases` and `/mock-eais/api/cases/{id}` | any session | `fond, opis, delo` | the ЕАИС case card (the «Карточка ЕАИС» link target). No session → 401. Restricted cases are 404 for reader and operator, as in the main API |
+| POST | `/mock-eais/api/cases` | internal token | `{fond, opis, delo, title, year_from?, year_to?, …}` | creates an ЕАИС case. No token → 401, duplicate шифр → 409, mock offline → 503. The browser must not call it; use `POST /api/m1/cases` |
+| GET | `/mock-eais/api/cases` and `/mock-eais/api/cases/{id}` | any session | `fond, opis, delo` | the ЕАИС case card (the «Карточка ЕАИС» link target). No session → 401. Restricted cases are 404 for reader and operator (the operator still sees them, title hidden, via `/api/m1/cases` and `check-case`) |
 
 ## 6. Screens
 

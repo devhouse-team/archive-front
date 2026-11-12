@@ -52,10 +52,11 @@ describe('ShifrPlate', () => {
     expect(group.attributes('aria-label')).toBe('Шифр: фонд 1, опись 1, дело 15, лист 3')
     const values = group.findAll('[class*="text-lg"]').map(v => v.text())
     expect(values).toEqual(['Ф.1', 'Оп.1', 'Д.15', 'л.3'])
-    // Micro-labels and chevrons are hidden from assistive tech; the Kazakh half carries lang="kk".
+    // Chevrons are hidden from assistive tech. Stage 11c (2026-11-12): no bilingual micro-labels, no lang="kk".
     const hidden = group.findAll('[aria-hidden="true"]')
     expect(hidden.filter(h => h.text() === '›')).toHaveLength(3)
-    expect(group.find('[lang="kk"]').text()).toBe('Қор')
+    expect(group.find('[lang="kk"]').exists()).toBe(false)
+    expect(group.text()).not.toMatch(/Қор|Фонд|Тізімдеме|Опись|Парақ/)
     const current = group.get('[aria-current="page"]')
     expect(current.text()).toContain('л.3')
     expect(current.find('.bg-locator').exists()).toBe(true)
@@ -75,6 +76,14 @@ describe('ShifrPlate', () => {
     const w = await mountSuspended(ShifrPlate, { props: { shifr: { fond: 1234, opis: 12, delo: 10345, leaf: 999 }, current: 'leaf' } })
     expect(w.findAll('[class*="text-lg"]').map(v => v.text())).toEqual(['Ф.1234', 'Оп.12', 'Д.10345', 'л.999'])
     expect(w.get('[role="group"]').attributes('aria-label')).toBe('Шифр: фонд 1234, опись 12, дело 10345, лист 999')
+  })
+
+  it('compact variant links as a whole only when given `to`', async () => {
+    const plain = await mountSuspended(ShifrPlate, { props: { shifr: { fond: 1, opis: 1, delo: 12, leaf: 3 }, variant: 'compact' } })
+    expect(plain.find('a').exists()).toBe(false)
+    const linked = await mountSuspended(ShifrPlate, { props: { shifr: { fond: 1, opis: 1, delo: 12, leaf: 3 }, variant: 'compact', to: '/dela/6' } })
+    expect(linked.get('a').attributes('href')).toBe('/dela/6')
+    expect(linked.find('[lang="kk"]').exists()).toBe(false)
   })
 
   it('compact variant: «Ф.1 Оп.1 Д.12 · л.3» with tabular figures and a spoken label', async () => {
@@ -106,8 +115,9 @@ describe('rail', () => {
       if (!expected.includes(item.to)) expect(hrefs).not.toContain(item.to)
     }
     const labels = w.findAll('nav > div > p').map(l => l.text())
-    expect(labels).toEqual(navForRole(role).map(g => `${g.labelKk === 'nav.groups.fond.kk' ? 'Қор · Фонд' : g.labelKk === 'nav.groups.processing.kk' ? 'Өңдеу · Обработка' : 'Жүйе · Система'}`))
-    expect(w.findAll('nav > div > p [lang="kk"]')).toHaveLength(labels.length)
+    // Stage 11c (2026-11-12): Russian-only group labels.
+    expect(labels).toEqual(navForRole(role).map(g => g.id === 'fond' ? 'Фонд' : g.id === 'processing' ? 'Обработка' : 'Система'))
+    expect(w.findAll('nav [lang="kk"]')).toHaveLength(0)
     expect(w.get('nav').attributes('aria-label')).toBe('Основное меню')
   })
 

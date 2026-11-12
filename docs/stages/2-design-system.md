@@ -1,5 +1,8 @@
 # Stage 2: visual world and design-system tokens
 
+
+> **Reversal, 2026-11-12 (Stage 11c).** The bilingual Kazakh/Russian micro-labels (ҚОР · ФОНД) are gone from the plates, and the rail group labels are Russian only («Фонд», «Обработка», «Система», 12 px). This reverses the Stage 2 choice: staff aged 40–50 found the page too noisy, and the short prefix (Ф., Оп., Д., л.) already names the level. The `kk` strings stay in `ru.ts` for a future Kazakh UI. The viewer header now uses the compact plate; detail moves under «Подробнее», «Ещё ⋯» and Правка mode. Where older text below mentions micro-labels, this note wins.
+
 ## Chosen direction
 
 **«Адрес архива»**, civic wayfinding.

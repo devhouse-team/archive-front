@@ -1,9 +1,11 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import { fileURLToPath } from 'node:url'
 
-// Read at config time: mock mode swaps the dev proxy for the in-memory Nitro mock (server/mock).
+// Read at config time (Nuxt loads .env first; see .env.example): mock mode swaps the dev proxy for the
+// in-memory Nitro mock (server/mock). API_BASE_URL is the backend the dev proxy forwards /api and /mock-eais to;
+// the browser always calls same-origin paths, so the session cookie keeps working (handoff §3).
 const apiMock = process.env.NUXT_PUBLIC_API_MOCK === '1'
-const backend = process.env.ARCHIVE_BACKEND_URL || 'http://127.0.0.1:8000'
+const backend = (process.env.API_BASE_URL || process.env.ARCHIVE_BACKEND_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '')
 const mockHandler = fileURLToPath(new URL('./server/mock/handler.ts', import.meta.url))
 
 // With icon provider 'none', @iconify/vue still ships its default API provider (api.iconify.design, api2…),

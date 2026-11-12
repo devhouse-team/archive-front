@@ -7,7 +7,7 @@ Product context: `PRODUCT.md`. Visual system: `DESIGN.md`. Stage tracker: `docs/
 ## Stack
 
 Nuxt 4 (SPA, `ssr: false`) · Vue 3 · TypeScript strict · Pinia · Nuxt UI v4 · Tailwind CSS v4 · pnpm · Vitest.
-Backend: FastAPI, cookie session, JSON under `/api`. Dev proxies `/api` and `/mock-eais` to `http://127.0.0.1:8000`; with `NUXT_PUBLIC_API_MOCK=1` the Nitro mock in `server/mock/` answers instead.
+Backend: FastAPI, cookie session, JSON under `/api`. Dev proxies `/api` and `/mock-eais` to `API_BASE_URL` from `.env` (default `http://127.0.0.1:8000`; template in `.env.example`); with `NUXT_PUBLIC_API_MOCK=1` the Nitro mock in `server/mock/` answers instead.
 
 ## Layout
 
@@ -61,7 +61,7 @@ Never stop, restart or kill the backend on :8000. `../astana-archive` is read-on
 
 ```bash
 pnpm dev                      # proxy mode (needs backend on :8000)
-NUXT_PUBLIC_API_MOCK=1 pnpm dev   # mock mode
+NUXT_PUBLIC_API_MOCK=1 pnpm dev   # mock mode (or set it in .env)
 pnpm typecheck && pnpm lint && pnpm test
 pnpm build && pnpm check:offline
 pnpm check:glyphs                 # font coverage: Kazakh, Yanalif, Töte

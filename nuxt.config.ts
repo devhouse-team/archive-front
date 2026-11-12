@@ -1,11 +1,13 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import { fileURLToPath } from 'node:url'
 
-// Read at config time (Nuxt loads .env first; see .env.example): mock mode swaps the dev proxy for the
-// in-memory Nitro mock (server/mock). API_BASE_URL is the backend the dev proxy forwards /api and /mock-eais to;
+// Read at config time (Nuxt loads .env first; see .env.example): mock mode swaps the proxy for the
+// in-memory Nitro mock (server/mock). API_BASE_URL is the backend that /api and /mock-eais are forwarded to;
 // the browser always calls same-origin paths, so the session cookie keeps working (handoff §3).
+// ARCHIVE_BACKEND_URL (the older name) is only ever set on the command line, so it wins over .env.
 const apiMock = process.env.NUXT_PUBLIC_API_MOCK === '1'
-const backend = (process.env.API_BASE_URL || process.env.ARCHIVE_BACKEND_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '')
+const backend = (process.env.ARCHIVE_BACKEND_URL || process.env.API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '')
+const backendProxy = fileURLToPath(new URL('./server/backend-proxy.ts', import.meta.url))
 const mockHandler = fileURLToPath(new URL('./server/mock/handler.ts', import.meta.url))
 
 // With icon provider 'none', @iconify/vue still ships its default API provider (api.iconify.design, api2…),
@@ -25,7 +27,15 @@ const offlineIconify = {
 export default defineNuxtConfig({
   modules: ['@nuxt/ui', '@pinia/nuxt', '@nuxt/eslint', '@nuxt/test-utils/module'],
   // The token specimen is a dev-only page.
+  // A production build (Vercel, `pnpm preview`) forwards /api and /mock-eais to API_BASE_URL, read at runtime
+  // (server/backend-proxy.ts). In dev the devProxy below does this.
   $production: {
+    serverHandlers: apiMock
+      ? []
+      : [
+          { route: '/api/**', handler: backendProxy },
+          { route: '/mock-eais/**', handler: backendProxy },
+        ],
     hooks: {
       'pages:extend'(pages) {
         const i = pages.findIndex(p => p.path === '/_specimen')
@@ -59,7 +69,11 @@ export default defineNuxtConfig({
         { route: '/mock-eais/**', handler: mockHandler },
       ]
     : [],
-  vite: { plugins: [offlineIconify] },
+  vite: {
+    plugins: [offlineIconify],
+    // Let `pnpm dev` answer through an ngrok tunnel (Vite blocks unknown Host headers by default).
+    server: { allowedHosts: ['.ngrok-free.app', '.ngrok-free.dev', '.ngrok.app', '.ngrok.dev'] },
+  },
   typescript: { strict: true },
   eslint: { config: { stylistic: true } },
   // Offline icons (spec 2 §Nuxt UI wiring, verified against @nuxt/icon 2.6.2):

@@ -64,6 +64,7 @@ pnpm dev                      # proxy mode (needs backend on :8000)
 NUXT_PUBLIC_API_MOCK=1 pnpm dev   # mock mode (or set it in .env)
 pnpm typecheck && pnpm lint && pnpm test
 pnpm build && pnpm check:offline
+PORT=3300 pnpm preview           # the built app, /api forwarded to API_BASE_URL; share this through ngrok, not `pnpm dev`
 pnpm check:glyphs                 # font coverage: Kazakh, Yanalif, Töte
 node scripts/smoke-roles.mjs http://localhost:3000   # role/route smoke (proxy or mock)
 # env NUXT_PUBLIC_DEMO_ACCOUNTS=0 hides the login demo chips and the rail «Демо-данные» footer (see nuxt.config.ts)

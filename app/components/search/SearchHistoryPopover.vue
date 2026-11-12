@@ -133,7 +133,6 @@ const tabs = computed(() => [
                 color="neutral"
                 variant="ghost"
                 class="justify-between gap-3 text-start"
-                :aria-label="t('search.history.run', { q: row.q })"
                 @click="run(row.q, row.filters)"
               >
                 <span class="flex min-w-0 flex-1 flex-col">
@@ -172,7 +171,6 @@ const tabs = computed(() => [
                 color="neutral"
                 variant="ghost"
                 class="min-w-0 flex-1 justify-start text-start"
-                :aria-label="t('search.history.run', { q: row.q })"
                 @click="run(row.q, row.filters)"
               >
                 <span class="flex min-w-0 flex-col">

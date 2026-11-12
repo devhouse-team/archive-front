@@ -22,10 +22,9 @@ const { t } = useT()
 const ALL = 'all'
 
 function set(key: FilterKey, value: string | number | null | undefined) {
-  const next: SearchFilterState = { ...props.filters }
   const v = value === null || value === undefined ? '' : String(value).trim()
+  const next: SearchFilterState = Object.fromEntries(Object.entries(props.filters).filter(([k]) => k !== key))
   if (v && v !== ALL) next[key] = v
-  else delete next[key]
   emit('update:filters', next)
 }
 

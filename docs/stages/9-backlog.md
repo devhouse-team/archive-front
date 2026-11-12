@@ -38,3 +38,4 @@
 - [ ] Viewer: «Скан / Текст» and «Просмотр / Правка» are UTabs without tabpanels. Use tabpanels or aria-pressed buttons.
 - [ ] Collections store: «already added» only knows this tab's adds, and `n` isn't decremented on removal. Refresh from the server (`stores/collections.ts:56-63`).
 - [ ] Search: a `creator` from the URL can only be cleared via «Сбросить фильтры». Add its own clear button (`SearchFilters.vue:215-220`).
+- [ ] Search: the past-end status note flashes before the auto-redirect (`search.vue:104-107`). Optional.

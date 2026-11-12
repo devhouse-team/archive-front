@@ -26,6 +26,8 @@ const report = []
 async function newPage(viewport = { width: 1920, height: 1080 }) {
   const context = await browser.newContext({ viewport, deviceScaleFactor: 1, acceptDownloads: true })
   const page = await context.newPage()
+  // The dev server transforms modules on first request; under load a cold page can take a minute.
+  page.setDefaultTimeout(240000)
   page.on('pageerror', e => errors.push(String(e)))
   page.on('console', (m) => {
     if (m.type() === 'error' && !/status of (401|403|404)/.test(m.text())) errors.push(m.text())
@@ -41,8 +43,8 @@ async function settle(page, ms = 500) {
 async function loginAs(page, role) {
   await page.goto(`${base}/login`)
   await page.getByRole('button', { name: `Войти как ${ROLE_RU[role]}` }).click()
-  await page.waitForURL(u => !new URL(u).pathname.startsWith('/login'), { timeout: 20000 })
-  await page.locator('main#main').waitFor({ timeout: 20000 })
+  await page.waitForURL(u => !new URL(u).pathname.startsWith('/login'), { timeout: 240000 })
+  await page.locator('main#main').waitFor({ timeout: 240000 })
 }
 
 async function smallTargets(page) {
@@ -68,7 +70,7 @@ async function overflowX(page) {
 }
 
 async function waitResults(page) {
-  await page.getByRole('article').first().waitFor({ timeout: 15000 })
+  await page.getByRole('article').first().waitFor({ timeout: 180000 })
   await settle(page)
 }
 
@@ -91,19 +93,19 @@ async function search(role) {
     // «Все страницы дела» on the case with two hit pages.
     const toggle = page.getByRole('button', { name: /Все страницы дела/ }).first()
     await toggle.click()
-    await page.locator('ol[aria-label="Страницы с совпадениями"] li').first().waitFor({ timeout: 10000 })
+    await page.locator('ol[aria-label="Страницы с совпадениями"] li').first().waitFor({ timeout: 120000 })
     await settle(page)
     await toggle.scrollIntoViewIfNeeded()
     await page.evaluate(() => document.querySelector('main#main')?.scrollBy(0, -120))
     await page.screenshot({ path: `${out}stage6-search-all-pages.png` })
     // Empty state.
     await page.goto(`${base}/search?q=${encodeURIComponent('абырвалгзз')}`)
-    await page.getByText('Ничего не найдено').waitFor({ timeout: 15000 })
+    await page.getByText('Ничего не найдено').waitFor({ timeout: 180000 })
     await settle(page)
     await page.screenshot({ path: `${out}stage6-search-empty.png` })
     // Initial state.
     await page.goto(`${base}/search`)
-    await page.getByText('Примеры запросов').waitFor({ timeout: 15000 })
+    await page.getByText('Примеры запросов').waitFor({ timeout: 180000 })
     await settle(page)
     await page.screenshot({ path: `${out}stage6-search-initial.png` })
     // URL sync: filter + fuzzy + sort + back.
@@ -124,7 +126,7 @@ async function mobile() {
   report.push({ check: 'mobile overflow (results)', ...(await overflowX(page)) })
   await page.screenshot({ path: `${out}stage6-search-mobile.png` })
   await page.getByRole('button', { name: /^Фильтры/ }).click()
-  await page.getByRole('dialog').waitFor({ timeout: 5000 })
+  await page.getByRole('dialog').waitFor({ timeout: 60000 })
   await settle(page, 700)
   report.push({ check: 'mobile overflow (filters open)', ...(await overflowX(page)) })
   report.push({ check: 'small targets (mobile filters)', items: await smallTargets(page) })
@@ -146,7 +148,7 @@ async function collections() {
     await settle(page, 300)
     await page.screenshot({ path: `${out}stage6-search-add-popover.png` })
     await page.getByRole('button', { name: 'Создать и добавить' }).click()
-    await page.getByText(/Лист добавлен в/).first().waitFor({ timeout: 10000 })
+    await page.getByText(/Лист добавлен в/).first().waitFor({ timeout: 120000 })
     // Idempotency: reopen the popover; the collection shows «уже добавлен» and is disabled.
     await page.getByRole('button', { name: /Добавить лист .* в подборку/ }).first().click()
     const already = await page.getByText('уже добавлен').count()
@@ -154,16 +156,16 @@ async function collections() {
     await page.keyboard.press('Escape')
 
     await page.goto(`${base}/collections`)
-    await page.getByRole('link', { name }).waitFor({ timeout: 10000 })
+    await page.getByRole('link', { name }).waitFor({ timeout: 120000 })
     await settle(page)
     await page.screenshot({ path: `${out}stage6-collections-list.png` })
     await page.getByRole('link', { name }).click()
     await page.waitForURL(/\/collections\/\d+/)
     createdId = Number(new URL(page.url()).pathname.split('/').pop())
-    await page.getByRole('article').first().waitFor({ timeout: 10000 }).catch(() => {})
+    await page.getByRole('article').first().waitFor({ timeout: 120000 }).catch(() => {})
     await settle(page)
     await page.screenshot({ path: `${out}stage6-collection-detail.png` })
-    const dl = page.waitForEvent('download', { timeout: 15000 })
+    const dl = page.waitForEvent('download', { timeout: 180000 })
     await page.getByRole('button', { name: 'CSV' }).click()
     const file = await dl
     report.push({ check: 'export csv', filename: file.suggestedFilename() })

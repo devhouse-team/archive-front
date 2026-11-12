@@ -1,0 +1,14 @@
+## Verdict: FAIL
+Counts: critical 0, major 1, minor 7
+
+1. [major] app/pages/search.vue:305-316,364-372,392-418 — empty and failed searches are not announced: the status line goes empty (summary '' when total 0), the error UAlert has no role. Confirmed live with q=Сарсенбаев. WCAG 4.1.3.
+2. [minor] SearchResult.vue:21, SearchDeloPages.vue:37 — an expanded «Все страницы дела» keeps stale data after the query changes.
+3. [minor] search.vue:123-129,437-438 — an out-of-range ?page= shows a total next to «Ничего не найдено», with no way back.
+4. [minor] stores/collections.ts:56-63 — «already added» only knows this tab's adds; the count isn't decremented on item removal.
+5. [minor] SearchHistoryPopover.vue:175 — the saved-query run button name omits the saved name.
+6. [minor] SearchResult.vue:91-92, SearchDeloPages.vue:81, collections/[id].vue:231-240 — label-in-name mismatches (WCAG 2.5.3).
+7. [minor] SearchResult.vue:99 — the disclosure toggle changes its label as well as aria-expanded.
+8. [minor] SearchFilters.vue:215-220 — creator from the URL can only be cleared via «Сбросить фильтры».
+
+Verified live (real backend via proxy): v-html only snippet_html in dir=auto, mark AA, Töte rtl; the reader never sees Д.21 (results, facets, doc types, empty search), the archivist sees the lock; submit disabled with a reason; URL state with back/forward/reload; result links; expansion focus; the add popover (keyboard, idempotent); saved queries cycle; collections CRUD, CSV export, 404; 375 px; source scan clean. Test data cleaned up.
+Checks: typecheck 0, eslint (Stage 6) 0, test/search 18/18.

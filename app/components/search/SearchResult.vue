@@ -44,12 +44,12 @@ const titleId = useId()
 
     <h2
       :id="titleId"
-      class="-mt-1 text-lg/snug font-semibold text-highlighted"
+      class="-my-1.5 text-lg/snug font-semibold text-highlighted"
     >
       <NuxtLink
         :to="bestLink"
         dir="auto"
-        class="rounded-sm underline-offset-4 decoration-1 hover:text-primary hover:underline"
+        class="inline-flex min-h-9 items-center rounded-sm underline-offset-4 decoration-1 hover:text-primary hover:underline"
       >{{ item.title }}</NuxtLink>
     </h2>
 
@@ -79,9 +79,10 @@ const titleId = useId()
       </li>
     </ul>
 
-    <div class="border-s border-default ps-3">
-      <SearchSnippet :snippet-html="item.snippet_html" />
-    </div>
+    <SearchSnippet
+      :snippet-html="item.snippet_html"
+      ruled
+    />
 
     <div class="flex flex-wrap items-center gap-2">
       <UButton
@@ -95,7 +96,7 @@ const titleId = useId()
         color="neutral"
         variant="ghost"
         :trailing-icon="expanded ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
-        :label="expanded ? t('search.result.hidePages') : t('search.result.allPages', { n: item.hits_pages })"
+        :label="t('search.result.allPages', { n: item.hits_pages })"
         :aria-expanded="expanded"
         :aria-controls="panelId"
         @click="expanded = !expanded"

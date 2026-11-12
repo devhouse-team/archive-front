@@ -35,6 +35,10 @@ async function load() {
 }
 
 onMounted(load)
+// The query or fuzzy level changed while the list was open: its snippets and pages are stale.
+watch(() => [props.q, props.fuzzy], () => {
+  void load()
+})
 </script>
 
 <template>
@@ -78,7 +82,7 @@ onMounted(load)
         <ULink
           :to="pageLink(row.page_id, q, fuzzy)"
           class="inline-flex min-h-9 items-center text-sm font-semibold text-primary tabular-nums underline-offset-4 hover:underline"
-          :aria-label="t('search.result.openAria', { leaf: row.leaf, title })"
+          :aria-label="t('search.result.leafAria', { leaf: row.leaf, title })"
         >
           {{ t('search.result.leaf', { leaf: row.leaf }) }}
         </ULink>

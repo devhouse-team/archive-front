@@ -10,7 +10,7 @@ Owner: `orchestrator` agent. Plan: stages 0–10. A stage is done only with a re
 | 3 | Scaffold + plumbing | Nuxt 4 SPA, API layer, stores, middleware, mock API, locales | done (review PASS round 2) | 2026-11-12 |
 | 4 | Shell + auth | §6 #1 Login, #12 bell, app shell, header ЕАИС indicator | done (review PASS round 1) | 2026-11-12 |
 | 5 | M2 page viewer | §6 #6 Страница + impeccable finish review + `DESIGN.md` via impeccable-documenter | built; review running | |
-| 6 | M3 search + collections | §6 #8 Поиск, #9 Подборки | built; review running | |
+| 6 | M3 search + collections | §6 #8 Поиск, #9 Подборки | done (review PASS round 2) | 2026-11-12 |
 | 7 | M1 operator | §6 #2 Панель, #3 Загрузка, #4 Ошибки, #10 Журнал | done (review PASS round 2) | 2026-11-12 |
 | 8 | Cases, review, admin | §6 #5 Дела, #7 Очередь проверки, #11 Администрирование | done (review PASS round 2) | 2026-11-12 |
 | 9 | Harden + finish | impeccable harden/adapt/optimize/polish, finish review | todo | |

@@ -101,6 +101,10 @@ async function run() {
     const res = await api.request<SearchResponse>('/api/search', { query: { ...toSearchParams(current) }, errorMode: 'background' })
     if (mine !== seq) return
     response.value = res
+    // A stale ?page= past the end (bookmark, results changed): go back to page 1 instead of an empty list.
+    if (!res.error && res.items.length === 0 && res.total > 0 && current.page > 1) {
+      void router.replace({ path: '/search', query: toSearchQuery({ ...current, page: 1 }) })
+    }
   }
   catch {
     if (mine !== seq) return
@@ -122,11 +126,28 @@ const pageCount = computed(() => response.value?.pages ?? Math.ceil((response.va
 
 const summary = computed(() => {
   const r = response.value
-  if (!r || r.error) return ''
+  if (!r || r.error || r.total === 0) return ''
   const cases = t(`search.plural.case.${pluralForm(r.total)}`, { n: r.total })
   const pages = t(`search.plural.page.${pluralForm(r.pages_total)}`, { n: r.pages_total })
   return t('search.summary', { cases, pages })
 })
+/** Empty and out-of-range answers (no items) — told apart by total. */
+const isEmpty = computed(() => !!response.value && !serverError.value && !hasResults.value && response.value.total === 0)
+const outOfRange = computed(() => !!response.value && !serverError.value && !hasResults.value && response.value.total > 0)
+
+/**
+ * What the role="status" line says (WCAG 4.1.3): progress, the count, «Ничего не найдено», or the failure.
+ * For empty and failed searches the panel below already shows the words, so the line carries them for
+ * assistive tech only.
+ */
+const statusNote = computed(() => {
+  if (loading.value || !state.value.q) return ''
+  if (failed.value) return t('search.error')
+  if (isEmpty.value) return t('search.empty.title')
+  if (outOfRange.value) return t('search.outOfRange')
+  return ''
+})
+
 const took = computed(() => {
   const r = response.value
   if (!r || r.error || !r.took) return ''
@@ -146,8 +167,20 @@ const examples = computed(() => [
   { q: t('search.initial.examples.bool'), hint: t('search.initial.examples.boolHint') },
 ])
 
+// Below 640 px the three fuzzy levels stack: side by side they need ~380 px (brief: no horizontal scroll at 375).
+const narrow = ref(false)
+let narrowQuery: MediaQueryList | null = null
+const onNarrow = (e: MediaQueryListEvent) => {
+  narrow.value = e.matches
+}
+onMounted(() => {
+  narrowQuery = window.matchMedia('(max-width: 639px)')
+  narrow.value = narrowQuery.matches
+  narrowQuery.addEventListener('change', onNarrow)
+})
+onBeforeUnmount(() => narrowQuery?.removeEventListener('change', onNarrow))
+
 const radioUi = {
-  fieldset: 'flex-row gap-0',
   legend: 'sr-only',
   item: 'min-h-9 px-3 py-0 items-center has-data-[state=checked]:bg-primary/10 has-data-[state=checked]:border-primary',
   label: 'text-sm font-medium whitespace-nowrap',
@@ -230,8 +263,9 @@ const radioUi = {
           :legend="t('search.fuzzy.label')"
           :model-value="String(state.fuzzy)"
           :items="fuzzyItems"
-          orientation="horizontal"
+          :orientation="narrow ? 'vertical' : 'horizontal'"
           variant="table"
+          :class="narrow && 'w-full'"
           size="lg"
           :ui="radioUi"
           @update:model-value="setFuzzy"
@@ -285,7 +319,10 @@ const radioUi = {
         :aria-busy="loading || undefined"
         :aria-label="t('pages.search')"
       >
-        <div class="flex min-h-9 flex-wrap items-center justify-between gap-2">
+        <div
+          class="flex min-h-9 flex-wrap items-center justify-between gap-2"
+          :class="!loading && (!summary || outOfRange) && 'lg:min-h-0'"
+        >
           <p
             class="text-sm text-muted tabular-nums"
             role="status"
@@ -293,6 +330,10 @@ const radioUi = {
             <template v-if="loading">
               {{ t('search.loading') }}
             </template>
+            <span
+              v-else-if="statusNote"
+              class="sr-only"
+            >{{ statusNote }}</span>
             <template v-else-if="summary">
               <span class="font-semibold text-default">{{ summary }}</span>
               <span v-if="took"> · {{ took }}</span>
@@ -372,9 +413,24 @@ const radioUi = {
           </div>
         </div>
 
+        <!-- Past the last page: normally redirected to page 1 at once; the button covers a slow redirect. -->
+        <div
+          v-else-if="outOfRange"
+          class="flex flex-col items-start gap-3 rounded-lg bg-default p-5 sm:p-6"
+        >
+          <h2 class="text-lg font-semibold text-highlighted">
+            {{ t('search.outOfRange') }}
+          </h2>
+          <UButton
+            icon="i-lucide-arrow-left"
+            :label="t('search.toFirstPage')"
+            @click="navigate({ ...state, page: 1 })"
+          />
+        </div>
+
         <!-- Empty. -->
         <div
-          v-else-if="response && !serverError && !hasResults"
+          v-else-if="isEmpty"
           class="flex flex-col items-start gap-3 rounded-lg bg-default p-5 sm:p-6"
         >
           <h2 class="text-lg font-semibold text-highlighted">

@@ -1,0 +1,9 @@
+## Verdict: PASS
+Counts: critical 0, major 0, minor 3
+
+1. [minor] app/stores/collections.ts:56-63 — carried from round 1 #4 (already in the backlog).
+2. [minor] app/components/search/SearchFilters.vue:215-220 — carried from round 1 #8 (already in the backlog).
+3. [minor] app/pages/search.vue:104-107 — new: the past-end status note flashes before the auto-redirect. Optional: skip the interim note when redirecting.
+
+Major verified live as reader: the role=status node stays mounted (MutationObserver), with text for every outcome: searching, results count, empty «Ничего не найдено» (sr-only), failed «Поиск не выполнен» (sr-only), past-end note, then the redirect to page 1. Minors 2, 3, 5, 6 and 7: no regressions. No test data created.
+Checks: eslint (Stage 6) 0, test/search 22/22.

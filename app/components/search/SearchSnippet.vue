@@ -4,6 +4,8 @@
 defineProps<{
   /** A search payload's `snippet_html`, passed through untouched. */
   snippetHtml: string
+  /** A quotation rule on the inline-start side; it follows the snippet's own direction (right for Töte). */
+  ruled?: boolean
 }>()
 </script>
 
@@ -12,6 +14,7 @@ defineProps<{
   <p
     dir="auto"
     class="search-snippet text-sm/6 text-default break-words"
+    :class="ruled && 'border-s border-default ps-3'"
     v-html="snippetHtml"
   />
   <!-- eslint-enable vue/no-v-html -->

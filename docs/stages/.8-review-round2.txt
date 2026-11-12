@@ -1,0 +1,7 @@
+## Verdict: PASS
+Counts: critical 0, major 0, minor 1
+
+1. [minor] app/pages/dela/index.vue:48-80 — the Языки column still makes one /api/dela/{id} request per case (now aborted on leave, no restricted leak). The backend gap is already in the backlog.
+
+Major verified live (503 route): an alert with role=status «Нет ответа сервера. Данные на …», workers «нет данных», refresh line hidden; it recovers when data returns. Minors 2, 3, 4, 5, 7 and 8 are fixed with no regressions (switch label, langs abort on unmount, Cancel initial focus, single stale badge, column header, lang asserted in the re-OCR body plus 2 new health tests). All mutations were intercepted.
+Checks: eslint (Stage 8) 0, test/cases 15/15.

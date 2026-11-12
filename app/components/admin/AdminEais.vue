@@ -48,6 +48,18 @@ async function apply(online: boolean) {
   }
 }
 
+// «Отмена» is the safe default: focus it when the dialog opens (Reka would otherwise focus the close button).
+const cancelButton = useTemplateRef<{ $el?: HTMLElement }>('cancelButton')
+const focusCancel = {
+  onOpenAutoFocus: (e: Event) => {
+    const el = cancelButton.value?.$el
+    if (el instanceof HTMLElement) {
+      e.preventDefault()
+      el.focus()
+    }
+  },
+}
+
 const online = computed<boolean>({
   get: () => status.value?.online ?? false,
   set: (value) => {
@@ -113,13 +125,14 @@ const online = computed<boolean>({
       :title="t('admin.eais.confirmTitle')"
       :description="t('admin.eais.confirmBody')"
       :ui="{ footer: 'justify-end' }"
+      :content="focusCancel"
     >
       <template #footer>
         <UButton
+          ref="cancelButton"
           color="neutral"
           variant="outline"
           :label="t('admin.eais.cancel')"
-          autofocus
           @click="confirmOpen = false"
         />
         <UButton

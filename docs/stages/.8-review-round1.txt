@@ -1,0 +1,14 @@
+## Verdict: FAIL
+Counts: critical 0, major 1, minor 7
+
+1. [major] app/components/admin/AdminHealth.vue:60-141 — ignores health.error. With /api/health at 503 for 16 s, the panel kept «работает», frozen heartbeat ages and server time, and «Обновляется каждые 5 секунд». Fix: a stale warning alert with role=status, neutral «нет данных» badges, and the refresh line hidden.
+2. [minor] AdminEais.vue:92-105, cases.ts:129 — when off, the label «ЕАИС на связи» contradicts the state. Rename.
+3. [minor] pages/dela/index.vue:48-66 — the langs fetch (one /api/dela/{id} per row) keeps running after unmount. No leak (the reader never requests id 5). Stop it on unmount; the backend gap goes to the backlog.
+4. [minor] DelaReocrModal.vue:57, AdminEais.vue:122 — autofocus on «Отмена» has no effect; focus goes to the close X.
+5. [minor] AdminHealth.vue:82-93 — a stale worker shows «нет сигнала» and «сигнал 412 с назад» at once.
+6. [minor] AdminUsers.vue:159-168 — a role change saves on select with no confirmation (demoting an admin takes one click).
+7. [minor] review.vue:49,175, cases.ts:110 — the header reads like a count over a percentage.
+8. [minor] test/cases.test.ts:96-100,144 — the re-OCR test no longer asserts that `lang` is in the POST body.
+
+Verified live: the reader sees no Д.21 anywhere (list, langs requests, facets) and /dela/5 matches /dela/9999; the archivist sees the lock; re-OCR is editors-only, confirmed, states the overwrite, polls and stops on leave; review/admin gating; thumbnails ?w=200 lazy with accessible names; gaps rendered; export disabled with reason; states; users form validation; ЕАИС confirm; 36 px rows; source scan clean.
+Checks: typecheck 0, eslint (Stage 8) 0, test/cases 13/13. ЕАИС still online.

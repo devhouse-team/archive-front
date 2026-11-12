@@ -24,9 +24,19 @@ const errors = []
 const report = []
 const forbidden = []
 
+// One shared context: the dev server is slow under load, and a warm module cache makes each reload fast.
+// Roles switch by clearing the session cookie and logging in again.
+let shared = null
 async function newPage(viewport = { width: 1920, height: 1080 }) {
-  const context = await browser.newContext({ viewport, deviceScaleFactor: 1 })
-  const page = await context.newPage()
+  if (shared) {
+    await shared.context.clearCookies()
+    return shared
+  }
+  const real = await browser.newContext({ viewport, deviceScaleFactor: 1 })
+  const page = await real.newPage()
+  page.setDefaultTimeout(120000)
+  const context = { close: async () => {}, clearCookies: () => real.clearCookies(), real }
+  shared = { context, page }
   page.on('pageerror', e => errors.push(String(e)))
   page.on('console', (m) => {
     if (m.type() === 'error' && !/status of (401|403|404)/.test(m.text())) errors.push(m.text())
@@ -35,7 +45,7 @@ async function newPage(viewport = { width: 1920, height: 1080 }) {
     if (r.method() === 'POST' && /\/api\/dela\/\d+\/ocr/.test(r.url())) forbidden.push(`re-OCR POST ${r.url()}`)
     if (r.method() === 'POST' && /\/api\/users$/.test(r.url()) && !args.includes('--create')) forbidden.push(`create-user POST ${r.url()}`)
   })
-  return { context, page }
+  return shared
 }
 
 async function settle(page, ms = 600) {
@@ -46,8 +56,8 @@ async function settle(page, ms = 600) {
 async function loginAs(page, role) {
   await page.goto(`${base}/login`)
   await page.getByRole('button', { name: `Войти как ${ROLE_RU[role]}` }).click()
-  await page.waitForURL(u => !new URL(u).pathname.startsWith('/login'), { timeout: 20000 })
-  await page.locator('main#main').waitFor({ timeout: 20000 })
+  await page.waitForURL(u => !new URL(u).pathname.startsWith('/login'), { timeout: 120000 })
+  await page.locator('main#main').waitFor({ timeout: 120000 })
 }
 
 async function smallTargets(page) {
@@ -81,7 +91,7 @@ async function delaList(role) {
   const { context, page } = await newPage()
   await loginAs(page, role)
   await page.goto(`${base}/dela`)
-  await page.locator('main table tbody tr').first().waitFor({ timeout: 15000 })
+  await page.locator('main table tbody tr').first().waitFor({ timeout: 120000 })
   await settle(page)
   const rows = await page.locator('main table tbody tr').count()
   const badges = await page.locator('[data-testid="restricted-badge"]').count()
@@ -94,13 +104,13 @@ async function delaList(role) {
 
 async function openCaseWithGaps(page) {
   await page.goto(`${base}/dela`)
-  await page.locator('main table tbody tr').first().waitFor({ timeout: 15000 })
+  await page.locator('main table tbody tr').first().waitFor({ timeout: 120000 })
   const row = page.locator('main table tbody tr', { hasText: 'пропущены' }).first()
   const target = (await row.count()) ? row : page.locator('main table tbody tr').first()
   await target.locator('a').first().click()
   await page.waitForURL(/\/dela\/\d+/)
-  await page.locator('#delo-title').waitFor({ timeout: 15000 })
-  await page.waitForFunction(() => [...document.querySelectorAll('main img')].every(i => i.complete), null, { timeout: 15000 }).catch(() => {})
+  await page.locator('#delo-title').waitFor({ timeout: 120000 })
+  await page.waitForFunction(() => [...document.querySelectorAll('main img')].every(i => i.complete), null, { timeout: 120000 }).catch(() => {})
   await settle(page, 800)
 }
 
@@ -139,7 +149,7 @@ async function card() {
     const o = await newPage()
     await loginAs(o.page, role)
     await o.page.goto(url)
-    await o.page.locator('#delo-title').waitFor({ timeout: 15000 })
+    await o.page.locator('#delo-title').waitFor({ timeout: 120000 })
     await settle(o.page)
     report.push(`card ${role}: reocrButton=${await o.page.getByRole('button', { name: 'Распознать заново' }).count()} restrictedBadges=${await o.page.locator('[data-testid="restricted-badge"]').count()}`)
     await o.context.close()
@@ -151,7 +161,7 @@ async function review() {
   await loginAs(page, 'archivist')
   await page.goto(`${base}/review`)
   await page.locator('main h1').waitFor()
-  await page.waitForFunction(() => !document.querySelector('main [aria-busy="true"]'), null, { timeout: 15000 })
+  await page.waitForFunction(() => !document.querySelector('main [aria-busy="true"]'), null, { timeout: 120000 })
   await settle(page)
   report.push(`review: rows=${await page.locator('main table tbody tr').count()} h1=«${await page.locator('main h1').innerText()}»`)
   report.push(`review: small=${JSON.stringify(await smallTargets(page))} overflow=${JSON.stringify(await overflowX(page))}`)
@@ -164,8 +174,8 @@ async function admin() {
   await loginAs(page, 'admin')
   await page.goto(`${base}/admin`)
   await page.locator('#admin-users').waitFor()
-  await page.locator('main table tbody tr').first().waitFor({ timeout: 15000 })
-  await page.getByRole('switch').waitFor({ timeout: 15000 })
+  await page.locator('main table tbody tr').first().waitFor({ timeout: 120000 })
+  await page.getByRole('switch').waitFor({ timeout: 120000 })
   await settle(page, 1500)
   report.push(`admin: users=${await page.locator('main table tbody tr').count()} small=${JSON.stringify(await smallTargets(page))} overflow=${JSON.stringify(await overflowX(page))}`)
   await shot(page, 'admin')
@@ -229,7 +239,46 @@ async function admin() {
   await context.close()
 }
 
+// Review round 1: stale health under a failing /api/health, and initial focus on «Отмена» in both confirm modals.
+// Opens the modals and cancels them; nothing is switched or re-OCRed.
+async function staleAndFocus() {
+  const { page } = await newPage()
+  await loginAs(page, 'admin')
+  await page.goto(`${base}/admin`)
+  await page.getByRole('switch').waitFor()
+  await settle(page, 1500)
+  const focused = () => page.evaluate(() => (document.activeElement?.textContent || document.activeElement?.getAttribute('aria-label') || '').trim())
+  await page.getByRole('switch').click()
+  await page.getByRole('dialog').waitFor()
+  await settle(page, 400)
+  report.push(`eais confirm: focus on «${await focused()}»`)
+  await page.getByRole('dialog').getByRole('button', { name: 'Отмена' }).click()
+  await page.getByRole('dialog').waitFor({ state: 'detached' })
+  report.push(`eais after cancel: ${await page.getByRole('switch').getAttribute('aria-checked')}`)
+
+  await page.route('**/api/health', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{"detail":"Сервис недоступен"}' }))
+  await page.locator('[data-testid="health-stale"]').waitFor({ timeout: 30000 })
+  await settle(page, 600)
+  report.push(`health stale: alert=«${await page.locator('[data-testid="health-stale"]').innerText()}» role=${await page.locator('[data-testid="health-stale"]').getAttribute('role')} updatedLine=${await page.getByText('Обновляется каждые 5 секунд').count()} работает=${await page.locator('#admin-health ~ *, section[aria-labelledby="admin-health"]').getByText('работает', { exact: true }).count()}`)
+  await shot(page, 'admin-health-stale')
+  await page.unroute('**/api/health')
+  await page.locator('[data-testid="health-stale"]').waitFor({ state: 'detached', timeout: 30000 })
+  report.push('health recovered after unroute')
+
+  await page.context().clearCookies()
+  await loginAs(page, 'archivist')
+  await openCaseWithGaps(page)
+  await page.getByRole('button', { name: 'Распознать заново' }).click()
+  await page.getByRole('dialog').waitFor()
+  await settle(page, 400)
+  report.push(`reocr modal: focus on «${await focused()}»`)
+  await shot(page, 'reocr-modal')
+  await page.getByRole('dialog').getByRole('button', { name: 'Отмена' }).click()
+  await page.getByRole('dialog').waitFor({ state: 'detached' })
+}
+
 try {
+  if (want('focus')) await staleAndFocus()
   if (want('dela')) {
     await delaList('reader')
     await delaList('archivist')

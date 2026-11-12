@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
-import type { DeloSummary, Facets } from '~/types/api'
+import type { DeloDetail, DeloSummary, Facets, Lang } from '~/types/api'
 import { ACCESS } from '~/utils/access'
-import { deloLangs, gapsLabel } from '~/composables/useCases'
+import { deloLangs, gapsLabel, pageLangs } from '~/composables/useCases'
 import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({ roles: ACCESS.dela, title: 'pages.dela' })
@@ -43,6 +43,35 @@ const fondItems = computed(() => [
   })),
 ])
 
+// /api/dela has no per-case language list (only lang_override). The column is filled from the case details,
+// a few at a time and cached, for the rows on screen. Backend gap: a `langs` field on /api/dela would remove this.
+const LANG_FETCH_LIMIT = 100
+const LANG_FETCH_CONCURRENCY = 4
+const langsById = ref<Record<number, Lang[]>>({})
+/** Set on unmount: the workers stop taking rows from the queue. */
+let aborted = false
+async function fillLangs(list: DeloSummary[]) {
+  const todo = list.filter(d => deloLangs(d).length === 0 && !(d.id in langsById.value)).slice(0, LANG_FETCH_LIMIT)
+  const queue = [...todo]
+  async function worker() {
+    for (let d = queue.shift(); d && !aborted; d = queue.shift()) {
+      try {
+        const detail = await api.request<DeloDetail>(`/api/dela/${d.id}`, { errorMode: 'background' })
+        if (aborted) return
+        langsById.value = { ...langsById.value, [d.id]: pageLangs(detail.pages) }
+      }
+      catch {
+        // The cell stays «—».
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: LANG_FETCH_CONCURRENCY }, worker))
+}
+function langsOf(d: DeloSummary): Lang[] {
+  const own = deloLangs(d)
+  return own.length ? own : (langsById.value[d.id] ?? [])
+}
+
 let seq = 0
 async function load() {
   const mine = ++seq
@@ -52,6 +81,7 @@ async function load() {
     const data = await api.dela.list({ q: q.value.trim() || undefined, fond: fond.value })
     if (mine !== seq) return
     rows.value = data
+    void fillLangs(data)
   }
   catch {
     if (mine !== seq) return
@@ -80,6 +110,7 @@ watch([q, fond], () => {
   }, 300)
 })
 onBeforeUnmount(() => {
+  aborted = true
   if (debounce) clearTimeout(debounce)
 })
 
@@ -163,7 +194,7 @@ const tableUi = {
         @click="reset"
       />
       <p
-        class="ms-auto self-center text-sm text-muted tabular-nums"
+        class="ms-auto flex min-h-9 items-center self-end text-sm text-muted tabular-nums"
         role="status"
       >
         <template v-if="!loading && !failed">
@@ -245,7 +276,7 @@ const tableUi = {
               <NuxtLink
                 :to="`/dela/${row.original.id}`"
                 dir="auto"
-                class="font-medium text-highlighted underline-offset-4 hover:text-primary hover:underline"
+                class="-my-2 self-start py-2 font-medium text-highlighted underline-offset-4 hover:text-primary hover:underline"
               >{{ row.original.title }}</NuxtLink>
               <span
                 dir="auto"
@@ -257,7 +288,7 @@ const tableUi = {
             <span class="tabular-nums">{{ row.original.years }}</span>
           </template>
           <template #langs-cell="{ row }">
-            <DelaLangBadges :langs="deloLangs(row.original)" />
+            <DelaLangBadges :langs="langsOf(row.original)" />
           </template>
           <template #pages-cell="{ row }">
             <span

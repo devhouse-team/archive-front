@@ -2,23 +2,35 @@
 import { adminAge } from '~/composables/useAdmin'
 import { useHealthStore } from '~/stores/health'
 import { WORKER_IDS } from '~/utils/eais'
-import { formatTimestamp } from '~/utils/format'
+import { formatDuration, formatTimestamp } from '~/utils/format'
 
 // Service health (handoff §5.1 /api/health). Read from the shell's health store, which already polls every 5 s;
-// this panel never starts a poll of its own.
+// this panel never starts a poll of its own. When the last poll failed (health.error) the data on screen is the
+// last good answer: it is labelled as such and the worker states turn neutral instead of claiming «работает».
 const { t } = useT()
 const health = useHealthStore()
 const data = computed(() => health.data)
+const stale = computed(() => health.error !== null)
 
 const workers = computed(() => {
   const h = data.value
   if (!h) return []
   return WORKER_IDS.filter(id => h.workers?.[id]).map((id) => {
     const w = h.workers[id]
+    const age = w.age_s === null ? null : adminAge(w.age_s)
+    if (stale.value) {
+      return { id, color: 'neutral' as const, icon: 'i-lucide-circle-help', label: t('admin.health.workerUnknown'), age: null }
+    }
+    if (w.ok) {
+      return { id, color: 'success' as const, icon: 'i-lucide-circle-check', label: t('eais.workers.ok'), age }
+    }
+    // Shared wording «нет сигнала 2:15» carries the age itself, so no separate age line.
     return {
       id,
-      ok: w.ok,
-      age: w.age_s === null ? null : adminAge(w.age_s),
+      color: 'error' as const,
+      icon: 'i-lucide-circle-alert',
+      label: w.age_s === null ? t('eais.workers.never') : t('eais.workers.stale', { age: formatDuration(w.age_s) }),
+      age: null,
     }
   })
 })
@@ -54,11 +66,25 @@ const disk = computed(() => data.value ? String(data.value.disk_free_gb).replace
       >
         {{ t('admin.health.title') }}
       </h2>
-      <span class="text-[13px] text-muted">{{ t('admin.health.updated') }}</span>
+      <span
+        v-if="!stale"
+        class="text-[13px] text-muted"
+      >{{ t('admin.health.updated') }}</span>
     </div>
 
+    <UAlert
+      v-if="stale"
+      data-testid="health-stale"
+      role="status"
+      color="warning"
+      variant="soft"
+      icon="i-lucide-wifi-off"
+      :title="serverTime ? t('admin.health.stale', { time: serverTime }) : t('admin.health.staleNoTime')"
+      :description="data ? t('admin.health.staleHint') : undefined"
+    />
+
     <p
-      v-if="!data"
+      v-if="!data && !stale"
       class="text-sm text-muted"
       role="status"
     >
@@ -66,7 +92,7 @@ const disk = computed(() => data.value ? String(data.value.disk_free_gb).replace
     </p>
 
     <dl
-      v-else
+      v-if="data"
       class="grid grid-cols-[minmax(0,12rem)_minmax(0,1fr)] gap-x-4 gap-y-2.5 text-sm"
     >
       <dt class="pt-1 text-muted">
@@ -80,11 +106,11 @@ const disk = computed(() => data.value ? String(data.value.disk_free_gb).replace
             class="flex flex-wrap items-center gap-x-2 gap-y-1"
           >
             <UBadge
-              :color="w.ok ? 'success' : 'error'"
+              :color="w.color"
               variant="soft"
               size="md"
-              :icon="w.ok ? 'i-lucide-circle-check' : 'i-lucide-circle-alert'"
-              :label="w.ok ? t('eais.workers.ok') : t('eais.workers.never')"
+              :icon="w.icon"
+              :label="w.label"
             />
             <span class="text-default">{{ t(`eais.workers.${w.id}`) }}</span>
             <span

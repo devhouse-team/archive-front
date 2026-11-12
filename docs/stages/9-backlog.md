@@ -14,3 +14,27 @@
 - [ ] Ops panel: the failed OCR jobs list with «Повторить» (`POST /api/m1/jobs/{id}/retry`) and the «Отправить принудительно» (force) action from the reference UI are not built.
 - [ ] A cold load of /ops makes 2 queue requests at mount. Dedupe the in-flight request in `useQueueStore().refresh()` (`app/pages/ops.vue:42-45`).
 - [ ] The dev backend holds one Stage 7 test upload (`stage7-test.png`, invalid «Шифр не определён»). Reset the seed if a clean demo is wanted.
+
+## From Stage 8 (designer's notes)
+- [ ] Plurals («лист(ов)») in the re-OCR toast and the modal description.
+- [ ] The gap tile footer is slightly taller than the page tile footers.
+- [ ] /api/dela has no `langs`, so the Языки column fetches each case's detail. Ask the backend to add `langs` to the list.
+- [ ] Full `pnpm test` timeouts under load (login and shell tests hit 5 s with four dev servers running). Re-run on a quiet machine; raise `testTimeout` if needed.
+
+## From Stage 5 (designer's notes)
+- [ ] Real-backend check of the viewer (blocked by permissions for the designer; needs the user's OK).
+- [ ] Replace the native `window.confirm` (unsaved edits on leave, discard, re-OCR with corrections) with UModal.
+- [ ] Not exercised in a browser: «Отметить проверенной» → `next_review_id` / empty-queue toast, export downloads, retry. The save toast is not visually proven.
+- [ ] Confirm the new icons (`i-lucide-save`, `image`, `text`, `file-x`) appear in the production icon bundle (`pnpm build && pnpm check:offline`).
+
+## From Stage 6 (designer's notes)
+- [ ] Decide whether a header search box (→ `/search?q=`) is still wanted. It would mean editing the shared header.
+- [ ] The delete-collection modal's name goes blank during the close animation.
+- [ ] Pagination not exercised on real data (only 5 cases). The save-query and history popovers were not screenshotted.
+- [ ] Page-mount tests under machine load: consider a global `testTimeout` of 30 s.
+- [ ] Admin role change saves on select with no confirmation. Confirm when demoting an admin, or offer undo (`AdminUsers.vue:159-168`).
+- [ ] Viewer: floor confidence to one decimal when the threshold is fractional (vlm 96,5).
+- [ ] Viewer: the save toast covers the edit footer at 1920×1080.
+- [ ] Viewer: «Скан / Текст» and «Просмотр / Правка» are UTabs without tabpanels. Use tabpanels or aria-pressed buttons.
+- [ ] Collections store: «already added» only knows this tab's adds, and `n` isn't decremented on removal. Refresh from the server (`stores/collections.ts:56-63`).
+- [ ] Search: a `creator` from the URL can only be cleared via «Сбросить фильтры». Add its own clear button (`SearchFilters.vue:215-220`).

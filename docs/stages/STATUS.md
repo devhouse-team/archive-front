@@ -9,10 +9,10 @@ Owner: `orchestrator` agent. Plan: stages 0–10. A stage is done only with a re
 | 2 | Visual world + design system (impeccable new-work, ui-ux-pro-max) | direction contract, token spec `2-design-system.md`, fonts — **user approval** (DESIGN.md deferred to end of Stage 5) | done (user approved; review PASS round 5) | 2026-11-12 |
 | 3 | Scaffold + plumbing | Nuxt 4 SPA, API layer, stores, middleware, mock API, locales | done (review PASS round 2) | 2026-11-12 |
 | 4 | Shell + auth | §6 #1 Login, #12 bell, app shell, header ЕАИС indicator | done (review PASS round 1) | 2026-11-12 |
-| 5 | M2 page viewer | §6 #6 Страница + impeccable finish review + `DESIGN.md` via impeccable-documenter | in progress (parallel) | |
-| 6 | M3 search + collections | §6 #8 Поиск, #9 Подборки | in progress (parallel) | |
+| 5 | M2 page viewer | §6 #6 Страница + impeccable finish review + `DESIGN.md` via impeccable-documenter | built; review running | |
+| 6 | M3 search + collections | §6 #8 Поиск, #9 Подборки | built; review running | |
 | 7 | M1 operator | §6 #2 Панель, #3 Загрузка, #4 Ошибки, #10 Журнал | done (review PASS round 2) | 2026-11-12 |
-| 8 | Cases, review, admin | §6 #5 Дела, #7 Очередь проверки, #11 Администрирование | in progress (parallel) | |
+| 8 | Cases, review, admin | §6 #5 Дела, #7 Очередь проверки, #11 Администрирование | done (review PASS round 2) | 2026-11-12 |
 | 9 | Harden + finish | impeccable harden/adapt/optimize/polish, finish review | todo | |
 | 10 | Document | DESIGN.md from shipped code, CLAUDE.md | todo | |
 
@@ -29,3 +29,4 @@ Owner: `orchestrator` agent. Plan: stages 0–10. A stage is done only with a re
 - 2026-11-12 05:45: **User set a hard stop at 11:00** and chose "all screens, faster process". Stages 5–8 are built in parallel under `docs/stages/parallel-rules.md`: one locale file per area, assigned ports, additive-only edits to shared files. Each stage gets one review round; criticals and majors are fixed, minors go to the Stage 9 backlog. Stage 9 shrinks to a build, offline and role smoke pass. Stage 10 = DESIGN.md via impeccable-documenter. Stage 7 started next to Stage 4; 5, 6 and 8 start when Stage 4 ships ShifrPlate and the shell.
 - 2026-11-12: Stage 4 built (smoke 76/76 before Stage 7 edits; the rail moved off UNavigationMenu, which re-rendered 176× after sign-in). Boot long tasks (~6.5 s before /login paints) → Stage 9. Stage 4 review and the Stage 5, 6 and 8 designers started in parallel.
 - 2026-11-12: Committed and pushed `bb1106a` to origin/main at the user's request (author Nurzhan, no co-author). Local tool state, eval run logs and pycache are excluded via .gitignore. Stages 5–8 were mid-build at commit time.
+- 2026-11-12 ~06:55: **Open, needs the user.** The Stage 5 designer's login to the real backend on :8000 was denied by the permission system ("Identity Not Given"), so the viewer was verified only with in-browser mock data. The real-backend check (page 9 `?hl=мектеп`, a kk-arab page and a kk-latn page, as archivist and as reader) and the one-word edit round-trip are pending the user's OK. Not routed to another agent.

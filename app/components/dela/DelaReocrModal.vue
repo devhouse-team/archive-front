@@ -19,6 +19,18 @@ watch(open, (isOpen) => {
   if (isOpen) lang.value = 'auto'
 })
 
+// «Отмена» is the safe default: focus it when the dialog opens (Reka would otherwise focus the close button).
+const cancelButton = useTemplateRef<{ $el?: HTMLElement }>('cancelButton')
+const focusCancel = {
+  onOpenAutoFocus: (e: Event) => {
+    const el = cancelButton.value?.$el
+    if (el instanceof HTMLElement) {
+      e.preventDefault()
+      el.focus()
+    }
+  },
+}
+
 const items = computed(() => REOCR_LANGS.map(value => ({ value, label: t(`langsFull.${value}`) })))
 </script>
 
@@ -28,6 +40,7 @@ const items = computed(() => REOCR_LANGS.map(value => ({ value, label: t(`langsF
     :title="t('dela.card.reocr.title')"
     :description="t('dela.card.reocr.description', { shifr, count: pagesTotal })"
     :ui="{ content: 'sm:max-w-lg', footer: 'justify-end' }"
+    :content="focusCancel"
   >
     <template #body>
       <form
@@ -51,10 +64,10 @@ const items = computed(() => REOCR_LANGS.map(value => ({ value, label: t(`langsF
     </template>
     <template #footer>
       <UButton
+        ref="cancelButton"
         color="neutral"
         variant="outline"
         :label="t('dela.card.reocr.cancel')"
-        autofocus
         @click="open = false"
       />
       <UButton

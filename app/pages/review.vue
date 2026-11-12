@@ -159,7 +159,7 @@ const tableUi = {
           <NuxtLink
             :to="`/dela/${row.original.delo_id}`"
             dir="auto"
-            class="block max-w-[28rem] truncate text-muted underline-offset-4 hover:text-primary hover:underline"
+            class="-my-2 block max-w-[28rem] truncate py-2 text-muted underline-offset-4 hover:text-primary hover:underline"
           >{{ row.original.title }}</NuxtLink>
         </template>
         <template #lang-cell="{ row }">

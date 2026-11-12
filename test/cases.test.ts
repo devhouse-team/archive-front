@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import type { Pinia } from 'pinia'
@@ -7,6 +7,8 @@ import DelaRestrictedBadge from '~/components/dela/DelaRestrictedBadge.vue'
 import DelaThumbGrid from '~/components/dela/DelaThumbGrid.vue'
 import DelaReocrModal from '~/components/dela/DelaReocrModal.vue'
 import { useAuthStore } from '~/stores/auth'
+import { useHealthStore } from '~/stores/health'
+import { toApiError } from '~/utils/api-error'
 import type { DeloDetail, DeloPage, Role, User } from '~/types/api'
 import { ROLES } from '~/types/api'
 import { canAccess } from '~/utils/access'
@@ -92,11 +94,14 @@ describe('re-OCR on the case card', () => {
   beforeEach(() => {
     useAppPinia()
     posts = []
+
     registerEndpoint('/api/dela/6', () => delo())
     registerEndpoint('/api/dela/6/ocr', {
       method: 'POST',
       handler: async (event) => {
-        const { readBody } = await import('h3')
+        // registerEndpoint runs on test-utils' own h3 (v1); its readBody comes from the same alias.
+        // @ts-expect-error the alias is resolved by the test environment and has no type declaration
+        const { readBody } = await import('#nuxt-test-utils/h3')
         posts.push(await readBody(event))
         return { queued: 4 }
       },
@@ -106,7 +111,7 @@ describe('re-OCR on the case card', () => {
   async function mountCard(role: Role) {
     useAuthStore().setUser(user(role))
     const { default: Card } = await import('~/pages/dela/[id].vue')
-    const w = await mountSuspended(Card, { route: '/dela/6' })
+    const w = await mountSuspended(Card, { route: '/dela/6', attachTo: document.body })
     await flushPromises()
     return w
   }
@@ -133,24 +138,15 @@ describe('re-OCR on the case card', () => {
     await flushPromises()
     expect(w.findComponent(DelaReocrModal).props('open')).toBe(true)
     expect(posts).toEqual([])
+    // The modal says plainly that corrections are overwritten; the destructive button is in the error colour.
+    const body = document.body.textContent ?? ''
+    expect(body).toContain('Ручные исправления будут перезаписаны')
+    const confirm = [...document.body.querySelectorAll('button')].find(b => b.textContent?.includes('Перезаписать и распознать'))
+    expect(confirm?.className ?? '').toMatch(/bg-error/)
 
     w.findComponent(DelaReocrModal).vm.$emit('confirm', 'kk-arab')
     await flushPromises()
-    expect(posts).toEqual([{ lang: 'kk-arab' }])
-    w.unmount()
-  })
-
-  it('the modal states that manual corrections will be overwritten, with an error-coloured confirm', async () => {
-    useAuthStore().setUser(user('archivist'))
-    const w = await mountSuspended(DelaReocrModal, {
-      props: { 'open': true, 'shifr': 'Ф.1 Оп.1 Д.12', 'pagesTotal': 4, 'onUpdate:open': () => {} },
-      attachTo: document.body,
-    })
-    await flushPromises()
-    const text = document.body.textContent ?? ''
-    expect(text).toContain('Ручные исправления будут перезаписаны')
-    const confirm = [...document.body.querySelectorAll('button')].find(b => b.textContent?.includes('Перезаписать и распознать'))
-    expect(confirm?.className).toMatch(/bg-error/)
+    await vi.waitFor(() => expect(posts).toEqual([{ lang: 'kk-arab' }]))
     w.unmount()
   })
 })
@@ -195,5 +191,42 @@ describe('user form validation', () => {
     expect(fields({ username: 'Reader' }, ['reader'])).toEqual(['username'])
     expect(fields({ password: '123' })).toEqual(['password'])
     expect(fields({ full_name: 'я'.repeat(101) })).toEqual(['full_name'])
+  })
+})
+
+describe('service health panel', () => {
+  beforeEach(useAppPinia)
+
+  const live = {
+    eais_online: true, eais_down_since: null,
+    workers: { watcher: { age_s: 2.7, ok: true }, upload: { age_s: 135, ok: false }, ocr: { age_s: 1.7, ok: true } },
+    disk_free_gb: 4.1, disk_low: false, next_retry_at: null, next_retry_in: null,
+    ocr_engine: 'tesseract', tesseract: 'tesseract 5.5.4', last_backup: null, server_time: 1794425389,
+  }
+
+  it('live: «работает» with the age, a stale worker as «нет сигнала m:ss», and the refresh note', async () => {
+    useAuthStore().setUser(user('admin'))
+    useHealthStore().data = live
+    const { default: AdminHealth } = await import('~/components/admin/AdminHealth.vue')
+    const w = await mountSuspended(AdminHealth)
+    expect(w.text()).toContain('работает')
+    expect(w.text()).toContain('нет сигнала 2:15')
+    expect(w.text()).toContain('Обновляется каждые 5 секунд')
+    expect(w.find('[data-testid="health-stale"]').exists()).toBe(false)
+  })
+
+  it('failed poll: a status alert with the data time, neutral workers, no «Обновляется»', async () => {
+    useAuthStore().setUser(user('admin'))
+    const store = useHealthStore()
+    store.data = live
+    store.error = toApiError(503, { detail: 'Service Unavailable' })
+    const { default: AdminHealth } = await import('~/components/admin/AdminHealth.vue')
+    const w = await mountSuspended(AdminHealth)
+    const alert = w.get('[data-testid="health-stale"]')
+    expect(alert.attributes('role')).toBe('status')
+    expect(alert.text()).toContain('Нет ответа сервера. Данные на')
+    expect(w.text()).not.toContain('работает')
+    expect(w.text()).not.toContain('Обновляется каждые 5 секунд')
+    expect(w.text().match(/нет данных/g)?.length).toBeGreaterThanOrEqual(3)
   })
 })

@@ -1,0 +1,24 @@
+Note: claude-mem can't save memories right now. It reports "Claude Code could not authenticate the observer". To fix it, run `/login` or `claude auth login`.
+
+## Verdict: PASS
+Critical: 0 · Major: 0 · Minor: 2
+
+All 7 round-4 findings are fixed in `docs/stages/2-design-system.md`:
+
+| # | Round-4 finding | Status | Where |
+|---|---|---|---|
+| 1 | Nuxt UI state classes on the rail and header | Fixed | Lines 64–67 (rail link, icon, active icon); line 70 (header buttons get `focus-visible:bg-rail-active` and `active:bg-rail-active`); script rows at lines 129–133; Stage 3 tab-through check at line 71 |
+| 2 | Focus outline cancelled by Nuxt UI | Fixed | Lines 54–57 now use variant classes; the rail uses `focus-visible:before:ring-white` |
+| 3 | Unchecked controls under 3:1 | Fixed | `--ui-border-accented` and `--ui-bg-accented` are now slate-600 (lines 46–47 and 286–287); script rows at lines 123–128 |
+| 4 | Leader-line row outside the table | Fixed | Line 84 |
+| 5 | Links described as action-700 | Fixed | Line 30 |
+| 6 | Corrected vs low-confidence precedence | Fixed | Lines 91–92 say corrected replaces low confidence; this matches lines 85 and 357 |
+| 7 | ЕАИС dot colours and colour-only down state | Fixed | Aliases at lines 212–213; line 347 requires the text «ЕАИС недоступна» for the down state |
+
+No sections are lost. Every heading from «Chosen direction» to «Still open» is present (lines 3–428), and the brief's outputs are covered. Apart from findings 1 and 2 below, the edits add no contradictions.
+
+1. [minor] docs/stages/2-design-system.md:47, :287 — Fix 3 changes `--ui-bg-accented` for the whole app. In Nuxt UI v4, `bg-accented` is also the track of `UProgress` and `USlider`. With a slate-600 track, the `bg-primary` indicator measures **1.10:1** against it; with the old slate-200 track it was 3.86. No screen uses these components yet, so nothing breaks today. Any upload progress bar or zoom slider added later would fail the 3:1 rule for non-text elements (WCAG 1.4.11). Fix: put `UProgress` and `USlider` in the "Never for" column of line 47, and require a track override with ≥3:1 against the indicator (for example `--color-meter-track`) if either is ever used. Or add a script row for "primary indicator on the accented track".
+
+2. [minor] docs/stages/2-design-system.md:213 vs :347 — Fix 7 defines `--color-eais-down` (red-500), but line 347 shows the down state as a solid `error` badge (red-800), so nothing uses the alias. An unused alias invites a red-dot-only down state, which is what line 347 forbids. Fix: delete `--color-eais-down`, or tie it to a stated use that never appears without the text «ЕАИС недоступна».
+
+Checks: typecheck not run (no app), lint not run, tests not run. Offline: no source or build yet; the spec is unchanged on this point (`ui.fonts: false`, `icon.provider: 'none'`, `@fontsource`). Contrast script: ran, **0 failing**, and its output matches spec lines 100–171 exactly (62 pairs plus 3 dual-tone rows). I computed the ratios in findings 1 and 2 with the script's own `ratio()` and `blend()` functions. I also checked the hover state of `neutral` soft and subtle buttons, which use `bg-accented/75`: ink text measures 5.40 on white and 5.10 on elevated, so it passes.

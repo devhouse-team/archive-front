@@ -1,0 +1,46 @@
+Note: claude-mem can't save memories right now. It reports "Claude Code could not authenticate the observer". To fix it, run `/login` or `claude auth login`.
+
+## Verdict: FAIL
+Critical: 0 · Major: 3 · Minor: 4
+
+All 14 round-3 findings are fixed. I checked each one in `2-design-system.md` (lines 45, 54–55, 57–66, 74–88, 141–147, 224, 237–241, 277, 315–343, 371–372), in the contract, in CLAUDE.md and in `designer.md`. The contrast script's output matches the spec table exactly: 51 pairs plus 3 dual-tone rows, 0 failing. Status labels match handoff §4. Three new majors are below. They come from Nuxt UI v4 default theme classes that the civic overrides don't cancel, and from control-boundary contrast the script never measures. I computed the extra ratios myself with the script's formula.
+
+1. **[major] docs/stages/2-design-system.md:60-66.** The civic overrides replace only the resting colour classes. Nuxt UI v4's own state classes still apply on top of them:
+   - **Rail links:** the inactive link keeps `hover:text-highlighted`. On hover that puts ink on civic-700, which measures **2.03**.
+   - **Rail link icons:** the leading icon keeps `group-hover:text-default`, and the active icon is `text-primary`. On civic-700 that is ink at 2.03 or action-600 at **1.49**.
+   - **Header bell and user menu (`neutral`/`ghost`):** the compound variant adds `focus-visible:bg-elevated active:bg-elevated`. On keyboard focus the field turns slate-100, and the white icon drops to about **1.2:1**, so it effectively disappears.
+
+   **Fix:**
+   - Rail links: add `hover:text-white` to the link slot, and `text-white/…` or `text-rail-muted` to the leading-icon slot, including the hover and active states.
+   - Header buttons: add `focus-visible:bg-rail-active active:bg-rail-active` to the button `ui.base`.
+   - Add these hover, focus and active pairs to `contrast_tokens.py`.
+   - In Stage 3, check them against `.nuxt/ui/navigation-menu.ts` and `.nuxt/ui/button.ts`.
+
+2. **[major] docs/stages/2-design-system.md:53-54, :61, :66.** `focus-on-rail` is a custom utility with no variant prefix. In Tailwind v4, utilities without a variant are emitted before variant utilities. Nuxt UI's button base has `focus:outline-none`, and the navigation-menu link has `focus-visible:outline-none`. Both have the same specificity and come later in the CSS, so they cancel the white outline. tailwind-merge can't resolve this, because it doesn't know the custom utility.
+   - The rail then falls back to Nuxt UI's `focus-visible:before:ring-primary`: action-600 on civic-800 is **2.08** (needs 3).
+   - The header buttons get no ring at all.
+
+   **Fix:** express the rule as variant classes, for example `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white`. On rail links, set `focus-visible:before:ring-white` (11.38:1). Add a Stage 3 check that renders and tabs through the rail and header.
+
+3. **[major] docs/stages/2-design-system.md:40-41, :46, :232-233, :268.** Unchecked controls on toolbars fail the 3:1 boundary rule (WCAG 1.4.11). The spec puts toolbars on `bg-elevated`, and the sketch puts the «Рамки слов» checkbox in the scan-panel header (`assigned.html:112-114`).
+   - **Checkbox:** the ring is `ring-accented`, which is slate-500. That measures **2.95** on elevated and **2.49** on scan-pane.
+   - **Switch:** the unchecked track is `bg-accented`. `--ui-bg-accented` is never overridden, so it stays the default slate-200: **1.41** on white and 1.19 on elevated.
+
+   **Fix:**
+   - Set `--ui-border-accented` to slate-600 (4.16 on elevated) or darker, and re-measure it on white, elevated and scan-pane.
+   - Set `--ui-bg-accented` to slate-500 or darker, so the unchecked track reaches at least 3:1 on every ground it sits on.
+   - Add these rows to the script.
+
+4. **[minor] docs/stages/2-design-system.md:89.** The «Leader line» row sits after the bullet list, cut off from the overlay table. In rendered Markdown it is not part of that table, so a reader can miss the leader spec. Fix: move it back into the table at lines 72–79.
+
+5. **[minor] docs/stages/2-design-system.md:30.** The Action row still says "links in action-700". The script and lines 108–109 now use `text-primary` (action-600), and action-700 has no alias. Fix: change it to "links `text-primary`".
+
+6. **[minor] docs/stages/2-design-system.md:79 vs :82-86.** Line 79 says a corrected word drops the low-confidence dash, and line 337 agrees. But the precedence list ranks low-confidence (3) above corrected (4), which implies a corrected word that is still under 60 keeps the dash. Fix: make corrected override low-confidence in the list, or note that the two states are exclusive.
+
+7. **[minor] docs/stages/2-design-system.md:328.**
+   - The ЕАИС dot colours (green-500, red-500) have no semantic alias. Stage 3 would have to use raw palette classes, which CLAUDE.md bans.
+   - The "dot … or solid badge" wording lets the down state be shown by a dot of a different hue alone (WCAG 1.4.1).
+
+   Fix: add `--color-eais-ok` and `--color-eais-down` aliases. Require the down state to show the text «ЕАИС недоступна» (handoff §6); the dot alone is fine only for online.
+
+Checks: typecheck not run (no app), lint not run, tests not run. Offline: no source or build yet; `ui.fonts:false`, `icon.provider:'none'` and @fontsource are consistent across the spec, CLAUDE.md and `designer.md`, and the exact keys are deferred to Stage 3 as the spec says. Contrast script: ran, 0 failing, output matches the spec verbatim. I computed 10 extra pairs; the ratios in findings 1–3 come from those. The Nuxt UI default classes in findings 1 and 2 come from the v4 theme, since `.nuxt/ui` doesn't exist yet; Stage 3 must confirm them in `.nuxt/ui/*.ts`. I did not run the impeccable CLI; I reviewed by hand against the spec, the contract, PRODUCT.md and handoff §2, §4 and §7.

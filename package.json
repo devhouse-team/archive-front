@@ -1,0 +1,42 @@
+{
+  "name": "archive-frontend",
+  "type": "module",
+  "private": true,
+  "packageManager": "pnpm@9.8.0",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "typecheck": "nuxt typecheck",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "check:offline": "node scripts/check-offline.mjs",
+    "check:glyphs": "python3 scripts/design/glyph_coverage.py --check"
+  },
+  "dependencies": {
+    "@fontsource-variable/noto-naskh-arabic": "5.3.0",
+    "@fontsource-variable/noto-sans": "5.3.0",
+    "@fontsource/fira-sans": "5.3.0",
+    "@fontsource/fira-sans-condensed": "5.3.0",
+    "@iconify-json/lucide": "1.2.153",
+    "@nuxt/ui": "4.12.0",
+    "@pinia/nuxt": "1.0.3",
+    "nuxt": "4.6.4",
+    "pinia": "4.1.0",
+    "tailwindcss": "4.3.5",
+    "vue": "3.5.45",
+    "vue-router": "5.5.0"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "1.17.0",
+    "@nuxt/test-utils": "4.4.0",
+    "@vue/test-utils": "2.5.1",
+    "eslint": "10.14.0",
+    "happy-dom": "21.0.4",
+    "playwright-core": "1.65.0",
+    "typescript": "6.0.3",
+    "vitest": "5.1.0",
+    "vue-tsc": "3.3.14"
+  }
+}

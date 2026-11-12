@@ -1,0 +1,166 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+/* Fonts: self-hosted from @fontsource packages, bundled by Vite (spec 2 §Type). Nothing is fetched at runtime.
+   Fira Sans and Fira Sans Condensed: cyrillic + cyrillic-ext (Kazakh ә ғ қ ң ө ұ ү һ і) + latin + latin-ext (Yanalif). */
+@import "@fontsource/fira-sans/cyrillic-400.css";
+@import "@fontsource/fira-sans/cyrillic-ext-400.css";
+@import "@fontsource/fira-sans/latin-400.css";
+@import "@fontsource/fira-sans/latin-ext-400.css";
+@import "@fontsource/fira-sans/cyrillic-500.css";
+@import "@fontsource/fira-sans/cyrillic-ext-500.css";
+@import "@fontsource/fira-sans/latin-500.css";
+@import "@fontsource/fira-sans/latin-ext-500.css";
+@import "@fontsource/fira-sans/cyrillic-600.css";
+@import "@fontsource/fira-sans/cyrillic-ext-600.css";
+@import "@fontsource/fira-sans/latin-600.css";
+@import "@fontsource/fira-sans/latin-ext-600.css";
+@import "@fontsource/fira-sans/cyrillic-700.css";
+@import "@fontsource/fira-sans/cyrillic-ext-700.css";
+@import "@fontsource/fira-sans/latin-700.css";
+@import "@fontsource/fira-sans/latin-ext-700.css";
+@import "@fontsource/fira-sans-condensed/cyrillic-500.css";
+@import "@fontsource/fira-sans-condensed/cyrillic-ext-500.css";
+@import "@fontsource/fira-sans-condensed/latin-500.css";
+@import "@fontsource/fira-sans-condensed/latin-ext-500.css";
+@import "@fontsource/fira-sans-condensed/cyrillic-600.css";
+@import "@fontsource/fira-sans-condensed/cyrillic-ext-600.css";
+@import "@fontsource/fira-sans-condensed/latin-600.css";
+@import "@fontsource/fira-sans-condensed/latin-ext-600.css";
+
+/* Noto Sans (fallback for glyphs Fira lacks, e.g. Yanalif Ꞑꞑ): latin-ext and cyrillic-ext only.
+   Noto Naskh Arabic (kk-arab, Töte): arabic only. The package CSS ships every subset, so the faces are declared here. */
+@font-face {
+  font-family: "Noto Sans Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("@fontsource-variable/noto-sans/files/noto-sans-cyrillic-ext-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+
+@font-face {
+  font-family: "Noto Sans Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("@fontsource-variable/noto-sans/files/noto-sans-latin-ext-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Noto Naskh Arabic Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 700;
+  src: url("@fontsource-variable/noto-naskh-arabic/files/noto-naskh-arabic-arabic-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC;
+}
+
+/* Tokens (spec 2 §Scales, §Semantic aliases, §Type). `static` keeps every variable: Nuxt UI resolves them through var(). */
+@theme static {
+  --color-civic-50: #EDF5FE;
+  --color-civic-100: #DAE8FB;
+  --color-civic-200: #BCD6F7;
+  --color-civic-300: #95BDEF;
+  --color-civic-400: #6D9FDE;
+  --color-civic-500: #4A82C6;
+  --color-civic-600: #3067A9;
+  --color-civic-700: #1C508C;
+  --color-civic-800: #0B3A6E;
+  --color-civic-900: #042851;
+  --color-civic-950: #011735;
+
+  --color-action-50: #E9F4FC;
+  --color-action-100: #D3E9FA;
+  --color-action-200: #B1D8F7;
+  --color-action-300: #83C1F0;
+  --color-action-400: #51A5E0;
+  --color-action-500: #1E88C8;
+  --color-action-600: #0B6FA7;
+  --color-action-700: #085A88;
+  --color-action-800: #03456B;
+  --color-action-900: #00324F;
+  --color-action-950: #011F34;
+
+  --color-locator-50: #FFFBEA;
+  --color-locator-100: #FFF4CC;
+  --color-locator-200: #FEE9A8;
+  --color-locator-300: #FFD67E;
+  --color-locator-400: #F2B705;
+  --color-locator-500: #CB9A13;
+  --color-locator-600: #A77F12;
+  --color-locator-700: #89670F;
+  --color-locator-800: #6C5007;
+  --color-locator-900: #503B03;
+  --color-locator-950: #362600;
+
+  --color-slate-50: #F4F7FA;
+  --color-slate-100: #E4ECF6;
+  --color-slate-200: #D0DAE7;
+  --color-slate-300: #B7C2D1;
+  --color-slate-400: #99A6B6;
+  --color-slate-500: #7D8A9B;
+  --color-slate-600: #657182;
+  --color-slate-700: #505C6B;
+  --color-slate-800: #3D4755;
+  --color-slate-900: #2A343F;
+  --color-slate-950: #19212B;
+
+  --color-rail: var(--color-civic-800);
+  --color-rail-active: var(--color-civic-700);
+  --color-rail-muted: var(--color-civic-200);
+  --color-rail-field: var(--color-civic-900);
+  --color-rail-field-border: var(--color-civic-400);
+  --color-locator: var(--color-locator-400);
+  --color-ink: #12202E;
+  --color-hit: var(--color-cyan-200);
+  --color-scan-pane: var(--color-slate-200);
+  --color-meter: var(--color-slate-700);
+  --color-meter-track: var(--color-slate-200);
+  --color-lowconf-fill: var(--color-amber-100);
+  --color-eais-ok: var(--color-green-500);
+
+  --font-sans: "Fira Sans", "Noto Sans Variable", "Noto Naskh Arabic Variable", system-ui, sans-serif;
+  --font-plate: "Fira Sans Condensed", "Fira Sans", "Noto Sans Variable", sans-serif;
+  --font-arabic: "Noto Naskh Arabic Variable", "Fira Sans", serif;
+}
+
+:root {
+  --ui-primary: var(--ui-color-primary-600);
+  --ui-secondary: var(--ui-color-secondary-800);
+  --ui-warning: var(--ui-color-warning-800);
+  --ui-error: var(--ui-color-error-800);
+  --ui-success: var(--ui-color-success-800);
+  --ui-info: var(--ui-color-neutral-700);
+  --ui-text: var(--color-ink);
+  --ui-text-highlighted: var(--color-ink);
+  --ui-text-toned: var(--ui-color-neutral-800);
+  --ui-text-muted: var(--ui-color-neutral-700);
+  --ui-text-dimmed: var(--ui-color-neutral-600);
+  --ui-bg: #FFFFFF;
+  --ui-bg-muted: var(--ui-color-neutral-50);
+  --ui-bg-elevated: var(--ui-color-neutral-100);
+  --ui-bg-inverted: var(--ui-color-neutral-700);
+  --ui-border: var(--ui-color-neutral-200);
+  --ui-border-accented: var(--ui-color-neutral-600);
+  --ui-bg-accented: var(--ui-color-neutral-600);
+  --ui-radius: 0.375rem;
+  /* Shell header and rail brand band: 56 px (spec 2 §Spacing). */
+  --ui-header-height: 3.5rem;
+}
+
+/* Layout ground (spec 2 §Nuxt UI wiring): panels are bg-default on a bg-muted body. */
+@layer base {
+  body {
+    @apply bg-muted;
+    caret-color: var(--ui-primary);
+  }
+
+  ::selection {
+    background-color: var(--ui-color-primary-100);
+    color: var(--color-ink);
+  }
+}
+
+/* Focus on light grounds: see focus.css (loaded after this file; Tailwind would rewrite the rule if it lived here). */

@@ -1,0 +1,26 @@
+/*
+ * Focus on light grounds (spec 2 corrections, 2026-11-12).
+ * Nuxt UI 4.12 draws focus as a 3 px outline in `<color>/25` at offset 0 (about 1.4:1 on white). Two fixes:
+ * - colour: solid --ui-primary (action-600);
+ * - offset: 2 px, so the ring sits on the page ground instead of touching a solid fill. Without it, focus on a
+ *   solid primary button, an active tab or a checked switch is the same colour as the fill and disappears.
+ *   Ring vs ground: white 5.46, ground 5.08, elevated 4.58, scan-pane 3.86 (all >= 3:1).
+ *
+ * Plain CSS on purpose: Tailwind v4 rewrites element selectors inside `@layer utilities` in main.css into an
+ * invalid `:is() :focus-visible`. This file is not a Tailwind entry, so it reaches the browser as written and
+ * appends to the same native `utilities` layer after Tailwind's output:
+ * - (0,1,0) / (0,1,1) beats un-prefixed utilities (`outline-primary/25`, Nuxt UI's base `a:focus-visible`) by order;
+ * - it loses to variant classes such as `focus-visible:outline-white` or `focus-visible:outline-offset-*` (0,2,0),
+ *   so the civic-field overrides still win.
+ * Rail nav links draw focus on ::before (the pill itself); they get the colour only, no offset.
+ */
+@layer utilities {
+  :focus-visible {
+    outline-color: var(--ui-primary);
+    outline-offset: 2px;
+  }
+
+  :where([data-slot="link"], [data-slot="childLink"]):focus-visible::before {
+    outline-color: var(--ui-primary);
+  }
+}

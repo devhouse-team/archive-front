@@ -1,0 +1,9 @@
+## Verdict: PASS
+Counts: critical 0, major 0, minor 3
+
+1. [minor] app/app.config.ts:16-18 — label after:absolute after:inset-0 reuses the ::after Nuxt UI uses for the `required` asterisk (asterisk lands top-left of row) and covers links in label/description (click toggles instead of navigating). No current screen uses either. Fix: overlay on a slot with no other ::after (e.g. container before:absolute before:inset-0) or component-level <label> wrap; links in description relative z-[1]; record limit in Stage 3 note.
+2. [minor] app/composables/useApi.ts:96-98 — every 404 toast «Не найдено» also hides actionable export reasons («Нет распознанных страниц») for objects already visible. Fix: download() keeps server detail for 404 (only called for shown objects) or per-call option; Stage 5 disables export when pages_done === 0 with reason.
+3. [minor] docs/stages/2-design-system.md:450-455 — note omits the two limits from finding 1.
+
+Round-1 fixes verified by own measurement: solid-button focus offset 2px clear of fill (primary, error); light/civic focus intact, no overflow clipping; 36 px clickable rows toggle at far corners; not-found inside shell; logout clears queue/notifications/health; check-offline catches http:// and //host, w3.org allowed, real build 37 files pass.
+Checks re-run: lint ok, tests 109/109, check:offline ok.

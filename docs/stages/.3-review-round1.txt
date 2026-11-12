@@ -1,0 +1,15 @@
+## Verdict: FAIL
+Counts: critical 0, major 2, minor 6
+
+1. [major] app/app.config.ts:5 (+ app/assets/css/focus.css:13-15) — Solid buttons: focus outline is --ui-primary at offset 0, same as the action-600 fill, so focus is invisible (measured «Сохранить» on /_specimen: solid 3px rgb(11,111,167), offset 0, bg rgb(11,111,167)). Applies to every solid colour. Spec note 2-design-system.md:454-455 wrongly counts it as a pass. Fix: focus-visible:outline-offset-2 on button base; re-capture stage3-focus-light.png; correct the note.
+2. [major] app/app.config.ts:11-13 — Checkbox/switch/radioGroup: min-h-9 sits on the non-clickable root; real targets are 16×16 + 20 px label (checkbox), 40×22 + 20 px label (switch). Spec note 2-design-system.md:447 is wrong. Fix: make the clickable parts 36 px (wrapper self-stretch, label py-2, or a 36 px label wrap); re-measure; correct the note.
+3. [minor] app/composables/useApi.ts:98 — Toast mode shows the server 404 detail, which distinguishes hidden («Дело не найдено») from absent («Страница/Подборка не найдена»). Fix: notFound → t('errors.notFound'), never detail.
+4. [minor] app/stores/auth.ts:64-79 — logout/clear do not reset queue, notifications, health; previous user's counters leak to the next login in the same tab. Fix: reset them in clear().
+5. [minor] app/middleware/auth.global.ts:42-45 — Unknown routes render app/error.vue without the shell; the middleware branch is dead. Fix: catch-all app/pages/[...slug].vue (ALL_ROLES) raising notFound, or remove the dead branch.
+6. [minor] scripts/check-offline.mjs:15 — Only https:// is scanned; http:// and protocol-relative //host URLs pass. Fix: (?:https?:)?\/\/[a-z0-9.-]+\.[a-z]{2,} with explicit w3.org allowlist.
+7. [minor] app/pages/login.vue:91 — Submit disabled until both fields are filled; no reason, not focusable. Fix in Stage 4: enabled button, validate on submit with field messages.
+8. [minor] app/layouts/default.vue:25-30 — Interim app-name link is 187×24 px. Stage 4 replaces it. Also PageErrorState.vue:30 role="alert" on the whole section; prefer focused heading or role="status".
+
+Verified clean: error mapping and safe next; reader 403/404; credentials same-origin, empty localStorage; Content-Disposition; §2 matrix, nav, start routes, page roles; specimen absent from prod; usePolling; no v-html, no Russian literals, no raw palette; toast role=status; no non-local requests; glyph coverage; types incl. low_word_conf/ocr_engine auto; mock restricted filtering; civic focus captures.
+Impeccable detector: 0 anti-patterns on /login (1 advisory: unused Tailwind bounce keyframes).
+Checks: typecheck, lint, test 108/108, check:offline, check:glyphs ok.

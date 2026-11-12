@@ -1,0 +1,53 @@
+Warning: no stdin data received in 3s, proceeding without it. If piping from a slow command, redirect stdin explicitly: < /dev/null to skip, or wait longer.
+## Verdict: FAIL
+Critical: 0 · Major: 4 · Minor: 10
+
+All 16 round-2 findings are fixed in `2-design-system.md` and the contract. The contrast script's output matches the spec table exactly (40 pairs + 3 dual-tone rows, 0 failing). Four new majors turned up. The first was introduced by the round-2 focus fix; the others were missed in earlier rounds.
+
+1. **[major] docs/stages/2-design-system.md:53, :296-302.** The white 2 px outline with 2 px offset is prescribed for ShifrPlate. But plates are separate civic chips on the white page-context band (`.impeccable/mocks/decision/assigned.html:28,30`). The offset ring lands on white or ground: 1.00 and 1.08:1. Plate links get no visible focus. Fix: drop plates from the on-civic focus rule. Plates on light grounds use the default `--ui-primary` offset ring (5.46 on white). Keep `focus-on-rail` for the rail and header only.
+
+2. **[major] docs/stages/2-design-system.md:57, :61-62, :115-117.** The word-box stroke is set at "40% opacity". The table's 14.25 / 8.51 / 6.34 / 15.04 are full-opacity values. At 40%, white and ink over the scan grounds measure:
+   - light: 1.06 / 2.40
+   - yellowed: 1.33 / 2.16
+   - dark: 2.39 / 1.52
+   - very dark: 3.66 / 1.04
+
+   It fails 3:1 on three of the four grounds, which contradicts line 57 ("one of them always clears 3:1"). The low-confidence row says "Same dual tone", so it may inherit the 40%. Fix: full-opacity strokes for every overlay, or keep the halo at 100% and dim only the core. Add alpha-blended rows to `contrast_tokens.py`. State explicitly that low-confidence, hit and selected strokes are 100%.
+
+3. **[major] docs/stages/2-design-system.md:283, :314.** In the text pane, low-confidence words are marked only by an amber-100 background (about 1.08:1 against white). That is colour alone (WCAG 1.4.1). It also contradicts the spec's own rule that types are told apart "never by hue alone" (:57, :314). This is the archivist's core review cue. Fix: add a non-colour cue, for example a 2 px dashed bottom border in `--ui-warning` (7.09 on white). Offset it clear of Naskh descenders for `kk-arab`, and use the same treatment in the legend.
+
+4. **[major] docs/stages/2-design-system.md:25, :33-34.** «ЕАИС online / down» is routed to `--ui-success` (green-800) and `--ui-error` (red-700). The indicator sits in the civic-800 header (handoff §6). On that field green-800 measures 1.60 and red-700 1.77, so `text-success` or `text-error` fails AA. There is no on-civic status variant. Fix: on civic fields, the status text is white. Status is carried by a solid badge (white on red-700 is 6.42) or a dot with a white ring. Ban `text-success`, `text-error` and `text-warning` on `bg-rail`. Add the rows to the script.
+
+5. **[minor] docs/stages/2-design-system.md:53, :28.** There is no wiring for Nuxt UI components on civic fields:
+   - `UNavigationMenu` defaults (`text-muted`, `hover:before:bg-elevated`) put slate-700 on civic-800.
+   - `focus-on-rail` as a `class` lands on the `UInput` root `<div>`, where `:focus-visible` never matches.
+
+   Fix: define `focus-on-rail` with `&:focus-visible, &:has(:focus-visible)`. Specify the rail and header overrides (`:ui` or a `UTheme` wrapper) for link text, hover/active, input fill and placeholder, using the rail aliases.
+
+6. **[minor] docs/stages/2-design-system.md:199-203, :332.** `defaultVariants.size` on button does not reach components that pass their own `size` to `UButton`: `UPagination` (search, journal), the modal and toast close buttons, and the `UInputNumber` steppers. Fix: add `pagination: { defaultVariants: { size: 'lg' } }` and a `min-h-9 min-w-9` override for the close and stepper slots. Verify the slot names in Stage 3.
+
+7. **[minor] docs/stages/2-design-system.md:316-317.** Keyboard model gaps:
+   - The ←/→ direction is not defined for `kk-arab`. It should be visual, so → moves to the previous word in RTL.
+   - "Enter opens inline editing" and the edit bar hints are not gated to EDITORS in edit mode (handoff §2: operator and reader get view only). Fix: state both.
+
+8. **[minor] docs/stages/2-design-system.md:111, :85.** Some evidence rows test values nothing produces:
+   - "Leader core locator-700 on white": the core is now ink.
+   - "Links action-700": Nuxt UI links render `text-primary` (action-600), and nothing wires 700. Fix: drop or rewire both rows in the script.
+
+9. **[minor] docs/stages/2-design-system.md:40, :45.** Ratios missing for some surfaces:
+   - Error soft badge on elevated: 4.49, fails.
+   - Dimmed on scan-pane: 3.51, fails, and the sketch's scan line numbers sit there.
+
+   Fix: add "never on scan-pane" to Dimmed, specify line numbers as `text-muted` (4.82 on scan-pane), and ban the error soft badge on elevated, or measure it.
+
+10. **[minor] docs/stages/2-design-system.md:190, :35.** `info: 'neutral'` maps info to Tailwind's grey `neutral` palette, not slate as the table says. It only works because `--ui-info` is overridden. Fix: `info: 'slate'`.
+
+11. **[minor] docs/stages/2-design-system.md:32-34.** Not every status in handoff §4 has a colour. Missing: `queued`, `retry`, `pending`, `running` (including the long `vlm` run). Fix: map them, e.g. neutral or info soft for queued/pending/running and warning soft for «повтор».
+
+12. **[minor] docs/stages/2-design-system.md:277-290.** Handoff §4 `corrected` words have no visual treatment. Neither does the case of a word that is both low-confidence and corrected (Principle 2). Fix: add a marker, e.g. a muted dotted underline plus a tooltip with `ocr_text`, and say whether a corrected word keeps the low-confidence highlight.
+
+13. **[minor] docs/stages/2-design-system.md:181, :239.** Fonts come from `@fontsource` packages bundled by Vite. CLAUDE.md's hard rule and layout say self-hosted woff2 in `public/fonts/` with `@font-face` in `main.css`. Both are offline, but they conflict. Fix: pick one, and update CLAUDE.md or the spec to match.
+
+14. **[minor] docs/stages/2-design-system.md:36, :63.** Some overlay combinations are undefined: a word that is both a search hit and low-confidence, and a hit that is also selected. Fix: state the precedence, e.g. dashed 2 px with the hit fill.
+
+Checks: typecheck not run (no app), lint not run, tests not run. Offline: no source or build yet; the spec config (`ui.fonts:false`, `icon.provider:'none'`) is accepted, with exact keys deferred to Stage 3. The contrast script ran: 0 failing pairs. I recomputed 20 more pairs; finding 2's opacity values and finding 4's civic values come from those. The impeccable CLI (`context`) was not approved in this run, so critique and audit were done by hand.

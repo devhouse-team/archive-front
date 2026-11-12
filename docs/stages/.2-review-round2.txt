@@ -1,0 +1,79 @@
+The claude-mem outage from the session start is still on: "Claude Code could not authenticate the observer". Run /login (or `claude auth login`) to fix it.
+
+## Verdict: FAIL
+Critical: 0 · Major: 7 · Minor: 9
+
+1. **[major] docs/stages/2-design-system.md:125-139, :29-31, :107.** The `:root` block overrides only `--ui-primary`. Nuxt UI sets every semantic colour to shade 500 in light mode, so:
+   - `--ui-warning`, `--ui-error` and `--ui-success` stay at amber-500, red-500 and green-500. On white they measure 2.13, 3.81 and 2.22, and white text on them measures the same, so `text-warning` and solid badges fail.
+   - The 700 hexes in the table (`#BB4D00`, `#C10007`, `#008236`) never reach the components.
+   - `--ui-secondary` resolves to civic-500, not the civic-800 "plate colour".
+   - Even at 700, the soft badge fails: amber-700 on amber-700 at 10% is 4.37, and green-700 on green at 10% is 4.30. That covers the spec's own «на проверке» warning soft badge and «проверено».
+
+   Fix: add `--ui-error: var(--ui-color-error-700)` and `--ui-success: …-700` to `:root`. Use `--ui-warning: …-800` (or keep 700 and override the soft/subtle compound variants with an `amber-100` background, 4.52). Add `--ui-secondary: …-800`. Add a soft-badge row to the contrast table.
+
+2. **[major] docs/stages/2-design-system.md:26, :222-223.** The focus ring is `--ui-primary` (action-600). It gets 2.08:1 on civic-800 and 1.49:1 on civic-700, which fails the 3:1 non-text rule. The rail and header are full civic fields carrying nav items, search, the bell, the user menu and ShifrPlate links, so the keyboard path there has no visible focus. No on-civic control tokens exist: search field fill, placeholder, bell border, nav hover.
+
+   Fix: add an "on-civic" token set with its own focus treatment, for example a white 2 px outline plus offset (11.38) or locator-400 (6.26), plus fill and placeholder values with measured ratios.
+
+3. **[major] docs/stages/2-design-system.md:28, :200.** The leader line is specified "on a light ground" only, but it runs from the pin across the scan. locator-700 measures 1.21 on `#6B5E45`, 2.70 on `#C9B98F` and 4.04 on the sketch's scan pane. Line 210 says the leader alone carries the link at fit-width, so it must hold 3:1 everywhere it is drawn.
+
+   Fix: give the leader the same dual-tone treatment as the overlays (a 1 px white halo around the locator-700 core, or an ink core with a gold halo), and add those ratios.
+
+4. **[major] docs/stages/2-design-system.md:202-205 and .impeccable/surfaces/app-pages-page-id-vue.md:44.** The RTL leader geometry contradicts itself. The scan is on the left, and inline-start for `kk-arab` is the right edge of the text pane. "It crosses the gutter" does not get the line there: it has to cross the whole Arabic line, covering the words being proofread, or take a route nobody has defined.
+
+   Fix: define the route. Options: run it along the row band's bottom edge under the text, clear of Naskh descenders and the low-confidence underline. Or attach at the edge nearest the gutter in both directions and keep the line numbers at inline-start.
+
+5. **[major] docs/stages/2-design-system.md:143, :147.** Nuxt UI auto-registers `@nuxt/fonts` and `@nuxt/icon` (nuxt-ui `conventions.md:7-19`). With `--font-sans: "Fira Sans"…` in `@theme`, `@nuxt/fonts` resolves the families through remote providers (Google, Bunny) in dev and at build. `@nuxt/icon` falls back to the remote Iconify API. "Nothing is fetched at runtime" is not guaranteed. "Set `colorMode: false`" does not name the real key either.
+
+   Fix: specify `ui: { fonts: false, colorMode: false }` in `nuxt.config.ts`, and an icon config that uses local `@iconify-json/lucide` only (`icon: { provider: 'none', clientBundle: { scan: true } }` or similar).
+
+6. **[major] docs/stages/2-design-system.md:197-201.** LocatorPin has no accessibility spec, unlike ShifrPlate. Missing:
+   - `aria-hidden` on the pin and leader;
+   - how the selected word is exposed in the text pane (`aria-current`, a non-colour cue);
+   - announcements («Слово 1 из 5, уверенность 41 %») through a polite live region;
+   - Tab behaviour. "Follows ↑/↓ and Tab" next to the sketch's «Tab следующее» risks a keyboard trap if Tab cycles through the low-confidence words.
+
+   Fix: pin and leader `aria-hidden="true"`. Roving tabindex on ↑/↓. Tab follows DOM order and leaves after the last word, with no wrap. Esc returns focus to the toolbar. Selected word gets `aria-current="true"` plus the ink outline. Announce changes in a polite live region with strings in `ru.ts`.
+
+7. **[major] docs/stages/2-design-system.md:29.** "Pages and lines whose mean is under 60" invents a page threshold. Handoff §4 flags a page through `low_conf = 1` (mean < 75 or > 15% low words). The sketch page has mean 70.7 and is on review, yet would show no warning by this rule.
+
+   Fix: page-level warning comes from `low_conf === 1` (and «на проверке» from `low_conf=1 & reviewed=0`). Keep `< 60` for words, and mean `< 60` for lines only.
+
+8. **[minor] docs/stages/2-design-system.md:26, :52, :107.** Colour-role conflicts with "Action: never for decoration, status":
+   - `info: 'action'` paints info alerts and the `level: info` notifications in the button colour;
+   - the search-hit fill is `action-200`;
+   - neither the snippet `<mark>` style nor the confidence-meter fill is specified (the sketch uses civic-800 for the meter, against civic's "never for status").
+
+   Fix: map `info` to `slate`/neutral. Give search hits a dedicated token and use it for both the scan fill and `<mark>`. Specify the meter fill.
+
+9. **[minor] docs/stages/2-design-system.md:125-139.** `--ui-text-toned` is not overridden. It defaults to neutral-600, which makes it lighter than muted (700) and breaks the dimmed < muted < toned < default order. On elevated it is 4.16. Fix: `--ui-text-toned: var(--ui-color-neutral-800)`.
+
+10. **[minor] docs/stages/2-design-system.md:57, :95.** "Every result below comes from it" is false. `scripts/design/contrast_tokens.py:45-59` computes only 15 pairs, so 9 of the 18 table rows (amber, red and green v4, slate-700 on elevated, slate-600 on white, the amber-100 pairs, locator-700, civic-800 on ground) are not in it. Several of its labels are stale: "slate-500 (dimmed text)", "locator-100 (low-conf fill)". The locator 50/100/200 hexes in the spec (`#FFFBEA #FFF4CC #FEE9A8`) differ from the script's output (`#FFFFFF #FFFFFC #FEF0D2`), so they were hand-edited. I recomputed all 18 table values and they are correct. Fix: make the script emit exactly the spec's table and scales.
+
+11. **[minor] docs/stages/2-design-system.md:231, :119.** "36 px everywhere (via the `lg` defaults)" does not cover:
+    - `UNavigationMenu` items (32 px, no size variant);
+    - `UDropdownMenu` items (the user menu);
+    - `UTextarea`, `UInputNumber` (zoom), `USwitch`;
+    - `UCheckbox` at `md`, where the root is about 20 px tall including the label.
+
+    Fix: set slot overrides in `app.config.ts`, for example `navigationMenu.slots.link: 'min-h-9'`, `checkbox.slots.root: 'min-h-9 items-center'`, and the same for dropdown items.
+
+12. **[minor] docs/stages/2-design-system.md:141, :23.** "Custom tokens used directly" means classes like `bg-civic-800`, `bg-locator-400` and `text-ink-950`. CLAUDE.md's hard rule bans raw palette classes. Fix: define semantic aliases in `@theme static` (`--color-rail`, `--color-plate`, `--color-locator`, `--color-locator-line`, `--color-overlay-*`) and allow only those.
+
+13. **[minor] docs/stages/2-design-system.md:32.** "`neutral` solid = slate-700" is not what Nuxt UI renders: a neutral solid badge is `bg-inverted` (neutral-900 by default). Fix: set `--ui-bg-inverted: var(--ui-color-neutral-700)` or use a badge `ui` override, and state which.
+
+14. **[minor] docs/stages/2-design-system.md:24.** Rail hover and the active item share civic-700, so the active item has no distinct cue. Fix: add a non-colour active marker (an inset bar or weight) plus `aria-current="page"`.
+
+15. **[minor] docs/stages/2-design-system.md:189-193.** ShifrPlate gaps:
+    - the group `aria-label` plus the visible micro-labels (ҚОР ФОНД …) and values get read twice;
+    - the л. segment, which carries the gold "here" dot, has no `aria-current`.
+
+    Fix: `aria-hidden` on the micro-labels and chevrons, `aria-current="page"` on the current segment, and the aria-label template in `ru.ts`.
+
+16. **[minor] docs/stages/2-design-system.md:133, :33.** `--ui-bg: #FFFFFF` makes `bg-default`, the body, white, while the app ground is slate-50 (`bg-muted`). The scan-pane background (sketch `#DCE3EA`) is not tokenised. Fix: state the body/layout ground utility and add a scan-pane token.
+
+Round-1 fixes I checked:
+- Done: #6 (dual-tone outline; the theoretical minimum of 4.03:1 holds), #9, #10, #11, #12, #16, #17, #18, #20, #21, #22, #23.
+- Partial: #7, see 11. #8, see 4. #13, see 9. #14, see 1. #15, see 10. #19, see 1.
+
+Checks: typecheck not run (no app), lint not run, tests not run. Offline: no source or build yet; the spec gap is finding 5. The impeccable CLI (`context`) was not approved in this headless run, so critique and audit were done by hand. Contrast was recomputed independently for 50 pairs. Glyph coverage was not re-run because the @fontsource packages are not installed.

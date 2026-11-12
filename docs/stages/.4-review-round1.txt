@@ -1,0 +1,10 @@
+## Verdict: PASS
+Counts: critical 0, major 0, minor 4
+
+1. [minor] app/stores/health.ts:34 + app/utils/eais.ts:50 — after a failed /api/health poll, data keeps the old value and eaisView ignores health.error, so the header keeps claiming «ЕАИС на связи». The surface brief requires a muted «нет данных» state. Fix: pass error/stale into eaisView → unknown view.
+2. [minor] app/layouts/default.vue:62 — the mobile drawer dialog is named «Открыть боковую панель» (Nuxt UI toggle label). Fix: menu prop title/aria-label = t('nav.label').
+3. [minor] app/components/ShifrPlate.vue:44 — plate links get the browser auto focus ring (1 px). Fix: focus-visible:outline-2 focus-visible:outline-primary.
+4. [minor] app/components/UserMenu.vue:50 — redundant title tooltip. Fix: drop it.
+
+Live-verified: rail per role exact (§2), empty groups hidden, aria-current; reader sends no notifications/queue/review requests; operator no review; 36 px header and login targets; ЕАИС popover STAFF-only, Esc returns focus; logout stops polling; session expiry gives one redirect + one toast; safe next; login validation with aria-invalid/describedby, inline role=alert for server detail; demo chips flag; skip link and focus outlines; 375 px no overflow, drawer focus return; ShifrPlate a11y; required asterisk intact; source scan clean.
+Checks: eslint on Stage 4 files 0 problems; tests 121 passed (shell, login, useApi, access); impeccable detect 0 findings.

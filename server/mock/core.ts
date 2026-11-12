@@ -162,6 +162,7 @@ export function createMockApi(fixtures: MockFixtures) {
       pages_done: st('done'),
       pages_failed: st('failed'),
       low_conf: list.filter(p => p.status === 'done' && p.low_conf === 1 && p.reviewed === 0).length,
+      langs: [...new Set(list.map(p => p.lang).filter((l): l is Lang => !!l))].sort(),
     }
   }
 
@@ -441,7 +442,7 @@ export function createMockApi(fixtures: MockFixtures) {
     const user = require(req, EDITORS)
     const d = getDelo(user, int(id))
     const lang = ((req.body ?? {}) as { lang?: string }).lang || 'auto'
-    if (!['auto', 'ru', 'kk-cyrl', 'kk-latn', 'kk-arab'].includes(lang)) throw new HttpError(400, 'Неизвестный язык')
+    if (!['auto', 'ru', 'ru-old', 'kk-cyrl', 'kk-latn', 'kk-arab'].includes(lang)) throw new HttpError(400, 'Неизвестный язык')
     d.lang_override = lang === 'auto' ? null : lang as Lang
     log(user.username, 'перераспознавание дела', 'info', `язык: ${lang}, стр.: ${d.pages.length}`, d.shifr)
     return { queued: d.pages.length }
@@ -457,10 +458,14 @@ export function createMockApi(fixtures: MockFixtures) {
       }))
   })
   on('GET', '/api/pages/:id', (req, [id]) => {
-    const { page } = getPage(currentUser(req), int(id))
+    const { page, delo } = getPage(currentUser(req), int(id))
     // Per-engine threshold, as the backend sends it since 2026-11-12.
     const low_word_conf = page.engine === 'vlm' ? 96.5 : LOW_WORD_CONF
-    return { ...page, low_word_conf, highlight_word_ids: highlightIds(page, req.query.hl ?? '', int(req.query.fz)) }
+    // Neighbouring leaf numbers (leaves are sparse, so position is not a leaf).
+    const leaves = delo.pages.map(p => p.leaf).sort((a, b) => a - b)
+    const prev_leaf = leaves.filter(l => l < page.leaf).pop() ?? null
+    const next_leaf = leaves.find(l => l > page.leaf) ?? null
+    return { ...page, low_word_conf, prev_leaf, next_leaf, highlight_word_ids: highlightIds(page, req.query.hl ?? '', int(req.query.fz)) }
   })
   on('GET', '/api/pages/:id/image', (req, [id]) => {
     const { page } = getPage(currentUser(req), int(id))

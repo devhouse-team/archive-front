@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
 import type { M1File } from '~/types/api'
-import { fileShifr } from '~/composables/useOps'
+import { fileShifr, reasonHint } from '~/composables/useOps'
 import { useHealthStore } from '~/stores/health'
 import { formatDuration, formatTimestamp } from '~/utils/format'
 import { FILE_STATUS } from '~/utils/status'
@@ -13,6 +13,8 @@ const props = defineProps<{
   loading: boolean
   filtered: boolean
   sending: number | null
+  /** Rows that appeared after the screen opened: highlighted so a fresh upload is easy to find. */
+  fresh?: ReadonlySet<number>
 }>()
 const emit = defineEmits<{ sendNow: [file: M1File] }>()
 
@@ -29,7 +31,7 @@ const columns = computed<TableColumn<M1File>[]>(() => [
   { accessorKey: 'name', header: t('upload.cols.name') },
   { id: 'shifr', header: t('upload.cols.shifr') },
   { accessorKey: 'n_pages', header: t('upload.cols.pages'), meta: { class: { th: 'text-end', td: 'text-end tabular-nums' } } },
-  { accessorKey: 'status', header: t('upload.cols.status') },
+  { accessorKey: 'status', header: t('upload.cols.status'), meta: { class: { td: 'whitespace-normal' } } },
   { accessorKey: 'attempts', header: t('upload.cols.attempts'), meta: { class: { th: 'text-end', td: 'text-end tabular-nums' } } },
   { accessorKey: 'updated_at', header: t('upload.cols.updated') },
   { id: 'actions', header: () => h('span', { class: 'sr-only' }, t('upload.cols.actions')) },
@@ -40,6 +42,10 @@ const tableUi = {
   th: 'bg-elevated py-2.5 text-[13px]',
   td: 'py-2 text-default',
   empty: 'py-10 text-center text-sm text-muted',
+}
+
+const tableMeta = {
+  class: { tr: (row: { original: M1File }) => props.fresh?.has(row.original.id) ? 'bg-primary/5' : '' },
 }
 
 const emptyText = computed(() => props.filtered ? t('upload.queue.emptyFiltered') : t('upload.queue.empty'))
@@ -53,9 +59,18 @@ const emptyText = computed(() => props.filtered ? t('upload.queue.emptyFiltered'
     :ui="tableUi"
     :caption="t('upload.queue.title')"
     :get-row-id="(row: M1File) => String(row.id)"
+    :meta="tableMeta"
   >
     <template #name-cell="{ row }">
-      <span class="font-medium text-highlighted">{{ row.original.name }}</span>
+      <NuxtLink
+        v-if="row.original.status === 'uploaded' && row.original.delo_id"
+        :to="`/dela/${row.original.delo_id}`"
+        class="font-medium text-highlighted underline-offset-4 hover:text-primary hover:underline"
+      >{{ row.original.name }}</NuxtLink>
+      <span
+        v-else
+        class="font-medium text-highlighted"
+      >{{ row.original.name }}</span>
       <span class="ms-2 text-xs text-muted">{{ row.original.workplace }}</span>
     </template>
     <template #shifr-cell="{ row }">
@@ -77,30 +92,49 @@ const emptyText = computed(() => props.filtered ? t('upload.queue.emptyFiltered'
       {{ row.original.n_pages ?? '' }}
     </template>
     <template #status-cell="{ row }">
-      <span class="inline-flex items-center gap-2">
-        <!-- Uploaded is the normal end state: quiet, so the retry and invalid badges stand out. -->
-        <span
-          v-if="row.original.status === 'uploaded'"
-          class="inline-flex items-center gap-1.5 text-sm whitespace-nowrap text-muted"
-        >
-          <UIcon
-            name="i-lucide-check"
-            class="size-4 shrink-0"
-            aria-hidden="true"
+      <div class="flex flex-col items-start gap-1">
+        <span class="inline-flex items-center gap-2">
+          <!-- Uploaded is the normal end state: quiet, so the retry and invalid badges stand out. -->
+          <span
+            v-if="row.original.status === 'uploaded'"
+            class="inline-flex items-center gap-1.5 text-sm whitespace-nowrap text-muted"
+          >
+            <UIcon
+              name="i-lucide-check"
+              class="size-4 shrink-0"
+              aria-hidden="true"
+            />
+            {{ t(FILE_STATUS.uploaded.label) }}
+          </span>
+          <UBadge
+            v-else
+            variant="soft"
+            :color="FILE_STATUS[row.original.status].color"
+            :label="t(FILE_STATUS[row.original.status].label)"
           />
-          {{ t(FILE_STATUS.uploaded.label) }}
+          <span
+            v-if="retryCountdown(row.original)"
+            class="text-xs text-muted tabular-nums"
+          >{{ retryCountdown(row.original) }}</span>
         </span>
-        <UBadge
-          v-else
-          variant="soft"
-          :color="FILE_STATUS[row.original.status].color"
-          :label="t(FILE_STATUS[row.original.status].label)"
-        />
-        <span
-          v-if="retryCountdown(row.original)"
-          class="text-xs text-muted tabular-nums"
-        >{{ retryCountdown(row.original) }}</span>
-      </span>
+        <template v-if="row.original.status === 'invalid' && row.original.error_reason">
+          <p class="max-w-md text-sm text-error">
+            {{ row.original.error_reason }}
+          </p>
+          <p
+            v-if="reasonHint(row.original.error_reason)"
+            class="max-w-md text-[13px] text-muted"
+          >
+            {{ reasonHint(row.original.error_reason) }}
+          </p>
+        </template>
+        <p
+          v-else-if="row.original.status === 'retry' && row.original.last_error"
+          class="max-w-md text-[13px] text-muted"
+        >
+          {{ t('upload.retryReason', { reason: row.original.last_error }) }}
+        </p>
+      </div>
     </template>
     <template #attempts-cell="{ row }">
       {{ row.original.attempts ?? 0 }}
@@ -127,6 +161,7 @@ const emptyText = computed(() => props.filtered ? t('upload.queue.emptyFiltered'
           variant="ghost"
           trailing-icon="i-lucide-arrow-right"
           :label="t('upload.toErrors')"
+          :aria-label="t('upload.toErrorsFor', { name: row.original.name })"
         />
       </div>
     </template>

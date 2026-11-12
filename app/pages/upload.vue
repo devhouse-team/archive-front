@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { FileStatus, M1File, Workplace } from '~/types/api'
-import type { ShifrInput } from '~/composables/useOps'
+import type { CaseCheckState, ShifrInput } from '~/composables/useOps'
 import { errorText, OPS_POLL_MS, shifrErrors, uploadFilesWithProgress } from '~/composables/useOps'
 import { useAuthStore } from '~/stores/auth'
 import { useQueueStore } from '~/stores/queue'
@@ -18,7 +18,11 @@ const router = useRouter()
 const { notify } = useNotify()
 
 // ---------- upload form ----------
-const workplace = ref<Workplace>('ws1')
+// The last scanner choice survives a reload within the tab (not a secret, so sessionStorage is fine).
+const WORKPLACE_KEY = 'upload.workplace'
+const storedWorkplace = sessionStorage.getItem(WORKPLACE_KEY)
+const workplace = ref<Workplace>(storedWorkplace === 'ws2' ? 'ws2' : 'ws1')
+watch(workplace, w => sessionStorage.setItem(WORKPLACE_KEY, w))
 const shifr = ref<ShifrInput>({ fond: '', opis: '', delo: '' })
 const showRequired = ref(false)
 const fileInput = useTemplateRef<HTMLInputElement>('fileInput')
@@ -26,6 +30,9 @@ const dragging = ref(false)
 const uploading = ref(false)
 const progress = ref(0)
 const uploadError = ref<string | null>(null)
+const caseCheck = ref<CaseCheckState>({ state: 'idle' })
+const confirmOpen = ref(false)
+const pendingFiles = ref<File[]>([])
 const saved = ref<{ names: string[], workplace: Workplace } | null>(null)
 
 const workplaceItems = computed(() => [
@@ -41,13 +48,13 @@ function pick() {
 
 function onPicked(e: Event) {
   const input = e.target as HTMLInputElement
-  void send(Array.from(input.files ?? []))
+  send(Array.from(input.files ?? []))
   input.value = ''
 }
 
 function onDrop(e: DragEvent) {
   dragging.value = false
-  void send(Array.from(e.dataTransfer?.files ?? []))
+  send(Array.from(e.dataTransfer?.files ?? []))
 }
 
 /** Only a file name is shown, never a path (handoff §4): the saved relpath keeps its last segment. */
@@ -55,13 +62,29 @@ function baseName(p: string): string {
   return p.split(/[\\/]/).pop() ?? p
 }
 
-async function send(files: File[]) {
+function send(files: File[]) {
   if (!files.length || uploading.value) return
   if (shifrInvalid.value) {
     showRequired.value = true
     uploadError.value = t('upload.shifrIncomplete')
     return
   }
+  // A case ЕАИС does not know: the files would fail later with that reason, so ask first.
+  if (caseCheck.value.state === 'notFound') {
+    pendingFiles.value = files
+    confirmOpen.value = true
+    return
+  }
+  void upload(files)
+}
+
+function confirmSend() {
+  confirmOpen.value = false
+  void upload(pendingFiles.value)
+  pendingFiles.value = []
+}
+
+async function upload(files: File[]) {
   uploading.value = true
   progress.value = 0
   uploadError.value = null
@@ -102,6 +125,9 @@ const files = ref<M1File[] | null>(null)
 const filesLoading = ref(true)
 const filesError = ref<string | null>(null)
 const sending = ref<number | null>(null)
+// Rows that appeared after the first load of the current filter: highlighted. null = not loaded yet.
+let seen: Set<number> | null = null
+const fresh = ref<ReadonlySet<number>>(new Set())
 
 const statusItems = computed(() => [
   { label: t('upload.queue.allStatuses'), value: 'all' },
@@ -116,6 +142,11 @@ async function loadFiles() {
     if (mine !== seq) return
     files.value = rows
     filesError.value = null
+    if (seen) {
+      const added = rows.filter(r => !seen!.has(r.id)).map(r => r.id)
+      if (added.length) fresh.value = new Set([...fresh.value, ...added])
+    }
+    seen = new Set(rows.map(r => r.id))
   }
   catch (e) {
     if (mine === seq) filesError.value = errorText(e) ?? t('upload.queue.loadError')
@@ -129,12 +160,18 @@ const polling = usePolling(loadFiles, OPS_POLL_MS)
 
 // Filters live in the URL so the ops tiles can link here (/upload?status=retry).
 let debounce: ReturnType<typeof setTimeout> | null = null
+function resetFresh() {
+  seen = null
+  fresh.value = new Set()
+}
 watch(status, (s) => {
+  resetFresh()
   void router.replace({ query: { ...route.query, status: s === 'all' ? undefined : s } })
   filesLoading.value = true
   void loadFiles()
 })
 watch(q, (value) => {
+  resetFresh()
   if (debounce) clearTimeout(debounce)
   debounce = setTimeout(() => {
     void router.replace({ query: { ...route.query, q: value.trim() || undefined } })
@@ -184,15 +221,6 @@ async function sendNow(f: M1File) {
           {{ t('upload.title') }}
         </h2>
 
-        <UFormField :label="t('upload.workplace')">
-          <URadioGroup
-            v-model="workplace"
-            :items="workplaceItems"
-            orientation="horizontal"
-            :ui="{ fieldset: 'gap-x-6' }"
-          />
-        </UFormField>
-
         <fieldset class="flex flex-col gap-2">
           <legend class="text-sm font-medium text-default">
             {{ t('upload.shifrTitle') }}
@@ -203,8 +231,21 @@ async function sendNow(f: M1File) {
           <OpsShifrFields
             v-model="shifr"
             :show-required="showRequired"
+            @check="caseCheck = $event"
           />
         </fieldset>
+
+        <UFormField
+          :label="t('upload.workplace')"
+          :description="t('upload.workplaceHint')"
+        >
+          <URadioGroup
+            v-model="workplace"
+            :items="workplaceItems"
+            orientation="horizontal"
+            :ui="{ fieldset: 'gap-x-6' }"
+          />
+        </UFormField>
       </div>
 
       <div class="flex flex-col gap-3">
@@ -289,6 +330,9 @@ async function sendNow(f: M1File) {
             <p class="text-[13px] text-muted">
               {{ t('upload.sentTo', { workplace: saved.workplace }) }}
             </p>
+            <p class="text-[13px] text-default">
+              {{ t('upload.sentNext') }}
+            </p>
             <ul class="flex flex-wrap gap-1.5">
               <li
                 v-for="(name, i) in saved.names"
@@ -355,8 +399,34 @@ async function sendNow(f: M1File) {
         :loading="filesLoading"
         :filtered="status !== 'all' || q.trim() !== ''"
         :sending="sending"
+        :fresh="fresh"
         @send-now="sendNow"
       />
     </section>
+
+    <UModal
+      v-model:open="confirmOpen"
+      :title="t('upload.confirmNotFound.title')"
+      :ui="{ footer: 'justify-end' }"
+    >
+      <template #body>
+        <p class="text-sm text-default">
+          {{ t('upload.confirmNotFound.body', { fond: shifr.fond.trim(), opis: shifr.opis.trim(), delo: shifr.delo.trim() }) }}
+        </p>
+      </template>
+      <template #footer>
+        <UButton
+          color="neutral"
+          variant="outline"
+          :label="t('upload.confirmNotFound.back')"
+          @click="confirmOpen = false"
+        />
+        <UButton
+          icon="i-lucide-upload"
+          :label="t('upload.confirmNotFound.submit')"
+          @click="confirmSend"
+        />
+      </template>
+    </UModal>
   </div>
 </template>

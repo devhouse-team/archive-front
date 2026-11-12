@@ -210,7 +210,7 @@ export default {
       engines: {
         tesseract: 'Tesseract',
         vlm: 'VLM (GPU)',
-        auto: 'Автовыбор: VLM для арабской графики, Tesseract для остальных',
+        auto: 'Автовыбор: VLM для арабской графики и дореформенной орфографии (ru-old), Tesseract для остальных',
       },
       tesseract: 'Версия Tesseract',
       backup: 'Последняя резервная копия',

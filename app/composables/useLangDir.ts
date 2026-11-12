@@ -6,7 +6,7 @@ export type TextDir = 'rtl' | 'ltr' | 'auto'
 /** 'mixed' marks a list whose items can be in any script (search snippets, collection titles). */
 export type LangOrMixed = Lang | 'mixed'
 
-const LTR: readonly string[] = ['ru', 'kk-cyrl', 'kk-latn']
+const LTR: readonly string[] = ['ru', 'ru-old', 'kk-cyrl', 'kk-latn']
 
 /**
  * Handoff §4: kk-arab is right-to-left; mixed or unknown content gets dir="auto"

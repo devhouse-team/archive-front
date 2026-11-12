@@ -31,6 +31,11 @@ export function translate(key: MessageKey, params?: MessageParams): string {
   return interpolate(lookup(key) ?? key, params)
 }
 
+/** Language name for a lang value from the backend; an unknown code (a lang added server-side) shows as itself, never as `langs.xxx`. */
+export function langLabel(lang: string, full = false): string {
+  return lookup(`${full ? 'langsFull' : 'langs'}.${lang}`) ?? lang
+}
+
 export function useT() {
   return { t: translate }
 }

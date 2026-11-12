@@ -26,7 +26,7 @@ const emit = defineEmits<{
 const { t } = useT()
 const dir = useLangDir(() => props.lang)
 const arabic = computed(() => props.lang === 'kk-arab')
-const LANG_TAGS: Record<Lang, string> = { 'ru': 'ru', 'kk-cyrl': 'kk', 'kk-latn': 'kk-Latn', 'kk-arab': 'kk-Arab' }
+const LANG_TAGS: Record<Lang, string> = { 'ru': 'ru', 'ru-old': 'ru', 'kk-cyrl': 'kk', 'kk-latn': 'kk-Latn', 'kk-arab': 'kk-Arab' }
 const langTag = computed(() => props.lang ? LANG_TAGS[props.lang] : undefined)
 
 const root = useTemplateRef<HTMLElement>('root')

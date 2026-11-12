@@ -1,5 +1,6 @@
 import { DEFAULT_LOW_WORD_CONF } from '~/types/api'
 import type { PageDetail, Word, WordEdit } from '~/types/api'
+import { translate } from '~/composables/useT'
 
 // Pure logic for the page viewer (Stage 5): confidence, line grouping, box scaling, the keyboard model and the
 // PATCH payload. Kept free of Vue so the tests can pin each rule from handoff §4 and spec 2.
@@ -13,6 +14,15 @@ export function lowThreshold(page: Pick<PageDetail, 'low_word_conf'> | null | un
 /** A word is shown as low confidence when conf < threshold and nobody has corrected it (spec 2 §Confidence). */
 export function isLowWord(word: Pick<Word, 'conf' | 'corrected'>, threshold: number, edited = false): boolean {
   return word.corrected === 0 && !edited && word.conf < threshold
+}
+
+/**
+ * «л.2» / «л.5» next to the prev/next buttons. Leaves are sparse (1, 2, 3, 5, 6), so the neighbour's leaf number
+ * says more than «3 из 5». Null when the backend sends no leaf (older backend) or there is no neighbour.
+ */
+export function leafNavLabels(page: Pick<PageDetail, 'prev_leaf' | 'next_leaf'>): { prev: string | null, next: string | null } {
+  const label = (leaf: number | null | undefined) => typeof leaf === 'number' ? translate('viewer.context.leaf', { leaf }) : null
+  return { prev: label(page.prev_leaf), next: label(page.next_leaf) }
 }
 
 export interface ViewerLine {

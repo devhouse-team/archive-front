@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ShifrField, ShifrFieldErrors, ShifrInput } from '~/composables/useOps'
+import type { CaseCheckState, ShifrField, ShifrFieldErrors, ShifrInput } from '~/composables/useOps'
 import { shifrErrors, useCaseCheck } from '~/composables/useOps'
 
 // Фонд / Опись / Дело (/ Лист) inputs, digits only, with the live ЕАИС case check under them.
@@ -13,10 +13,13 @@ const props = withDefaults(defineProps<{
 }>(), { withLeaf: false, required: false, showRequired: false })
 
 const model = defineModel<ShifrInput>({ required: true })
+// The parent (the upload form) asks before sending to a case ЕАИС does not know.
+const emit = defineEmits<{ check: [state: CaseCheckState] }>()
 const { t } = useT()
 
 const errors = computed<ShifrFieldErrors>(() => shifrErrors(model.value, props.required))
 const { result: check } = useCaseCheck(model)
+watch(check, c => emit('check', c), { immediate: true })
 
 const fields = computed(() => {
   const list: { id: ShifrField, label: string }[] = [

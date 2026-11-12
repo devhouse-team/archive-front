@@ -3,7 +3,7 @@ import { translate } from '~/composables/useT'
 
 // Stage 8 helpers for /dela and /dela/[id]. Pure functions, so the gap and polling rules are unit-tested.
 
-export const REOCR_LANGS: readonly OcrLang[] = ['auto', 'ru', 'kk-cyrl', 'kk-latn', 'kk-arab']
+export const REOCR_LANGS: readonly OcrLang[] = ['auto', 'ru', 'ru-old', 'kk-cyrl', 'kk-latn', 'kk-arab']
 export const EXPORT_FORMATS: readonly ExportFormat[] = ['txt', 'json', 'hocr', 'alto', 'pdf']
 /** How often the case card re-reads the case while OCR runs (re-OCR or an upload in progress). */
 export const DELO_POLL_MS = 3000
@@ -41,17 +41,16 @@ export function delaConf(conf: number | null | undefined): string | null {
 }
 
 /**
- * Languages of a case for the list. /api/dela carries no per-case language list today, only `lang_override`;
- * a `langs` array is read when a backend sends one (case card pages always carry `lang`).
+ * Languages of a case for the list: `langs` from /api/dela; a backend without it falls back to `lang_override`.
  */
-export function deloLangs(delo: DeloSummary & { langs?: Lang[] | null }): Lang[] {
+export function deloLangs(delo: DeloSummary): Lang[] {
   if (delo.langs && delo.langs.length > 0) return delo.langs
   return delo.lang_override ? [delo.lang_override] : []
 }
 
 /** Distinct page languages on the case card, in a stable order. */
 export function pageLangs(pages: readonly Pick<DeloPage, 'lang'>[]): Lang[] {
-  const order: Lang[] = ['ru', 'kk-cyrl', 'kk-latn', 'kk-arab']
+  const order: Lang[] = ['ru', 'ru-old', 'kk-cyrl', 'kk-latn', 'kk-arab']
   const seen = new Set(pages.map(p => p.lang).filter((l): l is Lang => !!l))
   return order.filter(l => seen.has(l))
 }

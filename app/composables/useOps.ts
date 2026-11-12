@@ -1,6 +1,7 @@
 import { onScopeDispose, ref, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 import type { CheckCaseResult, JournalResult, M1File, UploadResult, Workplace } from '~/types/api'
+import { translate } from '~/composables/useT'
 import type { ApiError } from '~/utils/api-error'
 import { isApiError, toApiError } from '~/utils/api-error'
 import type { ShifrParts } from '~/utils/shifr'
@@ -10,12 +11,40 @@ import type { ShifrParts } from '~/utils/shifr'
 /** Poll interval for the queue, the file list and the error list while an ops screen is mounted (handoff §4). */
 export const OPS_POLL_MS = 5000
 
-/** Handoff §9: a resend cannot fix a blank, black or low-resolution scan, so «Отправить повторно» is hidden. */
-export const NO_RESEND_PREFIXES = ['Пустая', 'Чёрная', 'Разрешение'] as const
+export interface ErrorActions {
+  /** «Исправить шифр»: the reason is about the шифр or the case. */
+  fix: boolean
+  /** «Отправить принудительно»: the scan failed the quality check (dpi, blank, black); a resend cannot pass it. */
+  force: boolean
+  /** «Отправить повторно»: only where a second try can change the outcome. */
+  resend: boolean
+}
+
+/**
+ * Actions on /errors by the reason text (the backend's built-in UI does the same, app.js «Ошибки»).
+ * dpi / пустая / чёрная → force; шифр / не найдено / лист → fix. «Шифр не определён» is fixed by typing a
+ * шифр, never by a resend. Any other reason (duplicate, unknown) keeps only the resend.
+ */
+export function errorActions(reason: string | null | undefined): ErrorActions {
+  const r = (reason ?? '').toLowerCase()
+  const force = /dpi|пуст|чёрн|черн/.test(r)
+  const fix = /шифр|не найдено|лист/.test(r)
+  return { fix, force, resend: !force && !r.includes('шифр не определ') }
+}
+
+/** One line of «what to do next» for an invalid file, by reason; null when the reason has no standard next step. */
+export function reasonHint(reason: string | null | undefined): string | null {
+  const r = (reason ?? '').toLowerCase()
+  if (/dpi/.test(r)) return translate('upload.hint.dpi')
+  if (/пуст|чёрн|черн/.test(r)) return translate('upload.hint.blank')
+  if (r.includes('шифр не определ')) return translate('upload.hint.noShifr')
+  if (r.includes('не найдено')) return translate('upload.hint.notFound')
+  if (r.includes('дубликат')) return translate('upload.hint.duplicate')
+  return null
+}
 
 export function canResend(reason: string | null | undefined): boolean {
-  const r = (reason ?? '').trim()
-  return !NO_RESEND_PREFIXES.some(p => r.startsWith(p))
+  return errorActions(reason).resend
 }
 
 /** Шифр parts are digits only (handoff §5.2). An empty string is "not given", not invalid. */

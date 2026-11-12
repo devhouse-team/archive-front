@@ -1218,13 +1218,13 @@
     {
      "id": 5,
      "leaf": 2,
-     "lang": "kk-cyrl",
+     "lang": "ru-old",
      "mean_conf": 96.2,
      "low_conf": 0,
      "reviewed": 0,
      "status": "done",
      "script": "Cyrillic",
-     "engine": "tesseract"
+     "engine": "vlm"
     }
    ]
   }
@@ -7021,8 +7021,8 @@
    "width": 1750,
    "height": 2480,
    "script": "Cyrillic",
-   "lang": "kk-cyrl",
-   "engine": "tesseract",
+   "lang": "ru-old",
+   "engine": "vlm",
    "mean_conf": 96.2,
    "low_conf": 0,
    "reviewed": 0,

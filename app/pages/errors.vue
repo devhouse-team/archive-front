@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
 import type { M1File } from '~/types/api'
-import { canResend, errorText, fileShifr, OPS_POLL_MS } from '~/composables/useOps'
+import { errorActions, errorText, fileShifr, OPS_POLL_MS } from '~/composables/useOps'
 import { useQueueStore } from '~/stores/queue'
 import { ACCESS } from '~/utils/access'
 import { formatTimestamp } from '~/utils/format'
@@ -20,6 +20,9 @@ const loadError = ref<string | null>(null)
 const resending = ref<number | null>(null)
 const fixing = ref<M1File | null>(null)
 const modalOpen = ref(false)
+const forcing = ref<M1File | null>(null)
+const forceOpen = ref(false)
+const forceBusy = ref(false)
 
 async function load() {
   try {
@@ -68,16 +71,24 @@ function report(row: M1File) {
   void queueStore.refresh().catch(() => {})
 }
 
-async function resend(f: M1File) {
+function openForce(f: M1File) {
+  forcing.value = f
+  forceOpen.value = true
+}
+
+async function resend(f: M1File, force = false) {
   resending.value = f.id
+  if (force) forceBusy.value = true
   try {
-    report(await api.m1.retryFile(f.id))
+    report(await api.m1.retryFile(f.id, force))
+    forceOpen.value = false
   }
   catch {
     // The shared client already showed the server's detail as a toast.
   }
   finally {
     resending.value = null
+    forceBusy.value = false
   }
 }
 
@@ -86,7 +97,7 @@ const columns = computed<TableColumn<M1File>[]>(() => [
   { accessorKey: 'name', header: t('errors_screen.cols.name'), meta: { class: { td: 'whitespace-normal min-w-64' } } },
   { id: 'shifr', header: t('errors_screen.cols.shifr') },
   { accessorKey: 'updated_at', header: t('errors_screen.cols.time') },
-  // Fixed width and order: «Исправить шифр» always in the first slot, «Отправить повторно» (when allowed) after it.
+  // Actions by reason (errorActions): «Исправить шифр», «Отправить принудительно», «Отправить повторно».
   { id: 'actions', header: () => h('span', { class: 'sr-only' }, t('errors_screen.cols.actions')), meta: { class: { th: 'w-[25rem]', td: 'w-[25rem]' } } },
 ])
 
@@ -188,6 +199,7 @@ const tableUi = {
         <!-- Solid on the first row only (the next file to fix, as on /review); outline on the rest. -->
         <div class="flex flex-wrap items-center justify-start gap-2">
           <UButton
+            v-if="errorActions(row.original.error_reason).fix"
             icon="i-lucide-pencil"
             :color="row.index === 0 ? 'primary' : 'neutral'"
             :variant="row.index === 0 ? 'solid' : 'outline'"
@@ -197,7 +209,17 @@ const tableUi = {
             @click="openFix(row.original)"
           />
           <UButton
-            v-if="canResend(row.original.error_reason)"
+            v-if="errorActions(row.original.error_reason).force"
+            icon="i-lucide-send"
+            :color="row.index === 0 ? 'primary' : 'neutral'"
+            :variant="row.index === 0 ? 'solid' : 'outline'"
+            :label="t('errors_screen.force')"
+            :data-fix-id="row.original.id"
+            :aria-label="t('errors_screen.forceFor', { name: row.original.name })"
+            @click="openForce(row.original)"
+          />
+          <UButton
+            v-if="errorActions(row.original.error_reason).resend"
             color="neutral"
             variant="outline"
             icon="i-lucide-rotate-cw"
@@ -213,6 +235,12 @@ const tableUi = {
       </template>
     </UTable>
 
+    <OpsForceModal
+      v-model:open="forceOpen"
+      :file="forcing"
+      :loading="forceBusy"
+      @confirm="forcing && resend(forcing, true)"
+    />
     <OpsFixShifrModal
       v-model:open="modalOpen"
       :file="fixing"

@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 // Browser smoke test for routing and role gating against a running dev server (proxy or mock mode).
 //   node scripts/smoke-roles.mjs [http://localhost:3000]
+// SMOKE_TIMEOUT_MS (default 90000) bounds every wait: on the unbundled dev server login to a visible rail takes 38-56 s.
 // Uses the locally installed Chrome through playwright-core (no browser download).
 import { chromium } from 'playwright-core'
 
 const base = process.argv[2] || 'http://localhost:3000'
+const TIMEOUT = Number(process.env.SMOKE_TIMEOUT_MS) || 90000
 const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 
 // rail: the §2 screens in menu order (handoff §2, app/utils/nav.ts); groups: the bilingual labels that must render.
@@ -68,7 +70,7 @@ for (const c of CASES) {
   await page.fill('input[autocomplete="username"]', c.user)
   await page.fill('input[autocomplete="current-password"]', 'wrong')
   await page.click('button[type="submit"]')
-  await page.getByRole('alert').filter({ hasText: 'Неверный логин или пароль' }).waitFor({ timeout: 5000 })
+  await page.getByRole('alert').filter({ hasText: 'Неверный логин или пароль' }).waitFor({ timeout: TIMEOUT })
   check(page.url().includes('/login'), `${c.user}: wrong password shows «Неверный логин или пароль»`)
 
   // Login from a plain /login lands on the role's start route
@@ -76,17 +78,17 @@ for (const c of CASES) {
   await page.fill('input[autocomplete="username"]', c.user)
   await page.fill('input[autocomplete="current-password"]', c.user)
   await page.click('button[type="submit"]')
-  await page.waitForURL(u => new URL(u).pathname === c.start, { timeout: 10000 })
+  await page.waitForURL(u => new URL(u).pathname === c.start, { timeout: TIMEOUT })
   check(new URL(page.url()).pathname === c.start, `${c.user}: login → ${c.start}`)
 
   // Shell: the rail shows exactly the §2 screens, the bell only for STAFF, the ЕАИС indicator for everyone.
-  await page.locator(RAIL).first().locator('a').first().waitFor({ timeout: 20000 })
+  await page.locator(RAIL).first().locator('a').first().waitFor({ timeout: TIMEOUT })
   const rail = await page.locator(RAIL).first().locator('a').evaluateAll(as => as.map(a => a.getAttribute('href')))
   check(JSON.stringify(rail) === JSON.stringify(c.rail), `${c.user}: rail shows exactly ${c.rail.join(' ')}${JSON.stringify(rail) === JSON.stringify(c.rail) ? '' : ` (got ${rail.join(' ')})`}`)
   const groups = (await page.locator(RAIL).first().locator(':scope > div > p').allInnerTexts()).map(g => g.trim().replace(/\s+/g, ' '))
   const groupsOk = JSON.stringify(groups.map(g => g.toLowerCase())) === JSON.stringify(c.groups.map(g => g.toLowerCase()))
   check(groupsOk, `${c.user}: rail groups ${c.groups.join(' / ')}${groupsOk ? '' : ` (got ${groups.join(' / ')})`}`)
-  await page.locator('header').getByText(/ЕАИС (на связи|недоступна)/).first().waitFor({ timeout: 15000 })
+  await page.locator('header').getByText(/ЕАИС (на связи|недоступна)/).first().waitFor({ timeout: TIMEOUT })
   check(true, `${c.user}: header shows the ЕАИС state`)
   // Give the bell's first poll time to run (or not, for the reader).
   await page.waitForTimeout(1500)
@@ -101,19 +103,19 @@ for (const c of CASES) {
 
   // `/` → start route
   await page.goto(`${base}/`)
-  await page.waitForURL(u => new URL(u).pathname === c.start, { timeout: 10000 })
+  await page.waitForURL(u => new URL(u).pathname === c.start, { timeout: TIMEOUT })
   check(true, `${c.user}: / → ${c.start}`)
 
   for (const path of c.allowed) {
     await page.goto(`${base}${path}`)
-    const h1 = await page.locator('main h1').first().textContent({ timeout: 10000 })
+    const h1 = await page.locator('main h1').first().textContent({ timeout: TIMEOUT })
     check(!!h1 && !h1.includes('Нет доступа'), `${c.user}: ${path} renders («${h1?.trim()}»)`)
   }
 
   if (c.forbidden) {
     await page.goto(`${base}${c.forbidden}`)
     const denied = page.locator('main h1').filter({ hasText: 'Нет доступа' })
-    await denied.waitFor({ timeout: 10000 })
+    await denied.waitFor({ timeout: TIMEOUT })
     check(await denied.isVisible(), `${c.user}: ${c.forbidden} shows «Нет доступа»`)
     // The forbidden item is not in the menu
     const navHas = await page.locator(`nav a[href="${c.forbidden}"]`).count()
@@ -123,19 +125,19 @@ for (const c of CASES) {
   // Unknown address while logged in → «Не найдено» inside the shell (logout button still there)
   await page.goto(`${base}/no-such-place`)
   const notFound = page.locator('main h1').filter({ hasText: 'Не найдено' })
-  await notFound.waitFor({ timeout: 10000 })
+  await notFound.waitFor({ timeout: TIMEOUT })
   check(await page.locator(RAIL).first().isVisible(), `${c.user}: unknown path shows «Не найдено» inside the shell`)
 
   // Logout through the user menu → /login, then a protected route asks for login again
   await page.locator('header button[aria-haspopup="menu"]').last().click()
   await page.getByRole('menuitem', { name: 'Выйти' }).click()
-  await page.waitForURL(/\/login/, { timeout: 10000 })
+  await page.waitForURL(/\/login/, { timeout: TIMEOUT })
   const afterLogout = requests.length
   await page.waitForTimeout(6000)
   const late = requests.slice(afterLogout).filter(p => /^\/api\/(health|m1\/queue|review|notifications)$/.test(p))
   check(late.length === 0, `${c.user}: polling stopped after logout${late.length ? ` (got ${late.join(' ')})` : ''}`)
   await page.goto(`${base}${c.start}`)
-  await page.waitForURL(/\/login\?next=/, { timeout: 10000 })
+  await page.waitForURL(/\/login\?next=/, { timeout: TIMEOUT })
   check(true, `${c.user}: logout → /login, session gone`)
 
   check(consoleErrors.length === 0, `${c.user}: no console errors${consoleErrors.length ? `: ${consoleErrors.join(' | ').slice(0, 300)}` : ''}`)

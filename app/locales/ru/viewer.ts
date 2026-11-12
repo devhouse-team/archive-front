@@ -9,8 +9,11 @@ export default {
       leafNav: 'Листы дела',
       position: '{position} из {count}',
       positionAria: 'Лист {position} из {count}',
+      leaf: 'л.{leaf}',
       prev: 'Предыдущий лист',
       next: 'Следующий лист',
+      prevLeaf: 'Предыдущий лист, л.{leaf}',
+      nextLeaf: 'Следующий лист, л.{leaf}',
       actions: 'Действия со страницей',
     },
     engines: {

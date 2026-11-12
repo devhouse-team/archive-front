@@ -7,8 +7,8 @@
 export type Role = 'admin' | 'archivist' | 'operator' | 'reader'
 export const ROLES: readonly Role[] = ['admin', 'archivist', 'operator', 'reader']
 
-/** Script/language of a page or case. kk-arab is right-to-left. */
-export type Lang = 'ru' | 'kk-cyrl' | 'kk-latn' | 'kk-arab'
+/** Script/language of a page or case. kk-arab is right-to-left; ru-old is pre-1918 Russian orthography. */
+export type Lang = 'ru' | 'ru-old' | 'kk-cyrl' | 'kk-latn' | 'kk-arab'
 export type OcrLang = Lang | 'auto'
 export type Access = 'open' | 'restricted'
 /** SQLite booleans arrive as 0/1. */
@@ -208,6 +208,8 @@ export interface DeloSummary {
   gaps: number[]
   /** Count of pages awaiting review. */
   low_conf: number
+  /** Distinct page languages. Added by the backend on 2026-11-12; older backends omit it. */
+  langs?: Lang[]
 }
 
 export interface DeloPage {
@@ -296,6 +298,9 @@ export interface PageDetail {
   position: number
   count: number
   max_leaf: number
+  /** Leaf numbers of the neighbouring pages (null at the ends). Added 2026-11-12; older backends omit them. */
+  prev_leaf?: number | null
+  next_leaf?: number | null
   job: { id: number, last_error: string | null } | null
 }
 

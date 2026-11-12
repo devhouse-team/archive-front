@@ -44,4 +44,4 @@ export function reviewStatus(page: { status: PageStatus, low_conf: Flag, reviewe
   return null
 }
 
-export const LANGS: readonly Lang[] = ['ru', 'kk-cyrl', 'kk-latn', 'kk-arab']
+export const LANGS: readonly Lang[] = ['ru', 'ru-old', 'kk-cyrl', 'kk-latn', 'kk-arab']

@@ -4,7 +4,7 @@ import { flushPromises } from '@vue/test-utils'
 import type { Pinia } from 'pinia'
 import { setActivePinia } from 'pinia'
 import authMiddleware from '~/middleware/auth.global'
-import { canResend, fileShifr, isDigits, NO_RESEND_PREFIXES, periodLabel, shifrComplete, shifrErrors } from '~/composables/useOps'
+import { canResend, errorActions, fileShifr, isDigits, periodLabel, shifrComplete, shifrErrors } from '~/composables/useOps'
 import { useAuthStore } from '~/stores/auth'
 import type { M1File, QueueCounters, Role, User } from '~/types/api'
 
@@ -39,19 +39,23 @@ const QUEUE: QueueCounters = {
   ocr: { pending: 0, running: 1, failed: 0 }, ocr_failed: [], review: 1, next_retry_at: null, next_retry_in: null,
 }
 
-describe('«Отправить повторно» rule (handoff §9)', () => {
-  for (const prefix of NO_RESEND_PREFIXES) {
-    it(`is hidden for reasons starting with «${prefix}»`, () => {
-      expect(canResend(`${prefix} что-то`)).toBe(false)
-      expect(canResend(`  ${prefix} с пробелом впереди`)).toBe(false)
-    })
-  }
+describe('/errors actions by reason', () => {
+  it('quality reasons offer force only', () => {
+    for (const r of ['Разрешение 96 dpi меньше 300', 'Пустая страница 1', 'Чёрная страница']) {
+      expect(errorActions(r), r).toEqual({ fix: false, force: true, resend: false })
+    }
+  })
 
-  it('is offered for every other reason, and for none', () => {
-    expect(canResend('Дубликат файла 002.tif (Ф.1 Оп.1 Д.12)')).toBe(true)
-    expect(canResend('Шифр не определён')).toBe(true)
-    expect(canResend('ЕАИС: дело не найдено')).toBe(true)
-    expect(canResend(null)).toBe(true)
+  it('шифр reasons offer the fix', () => {
+    expect(errorActions('Шифр не определён')).toEqual({ fix: true, force: false, resend: false })
+    expect(errorActions('Дело не найдено в ЕАИС')).toEqual({ fix: true, force: false, resend: true })
+    expect(errorActions('Не найден лист 4').fix).toBe(true)
+  })
+
+  it('a duplicate or an empty reason keeps only the resend', () => {
+    expect(errorActions('Дубликат файла 002.tif (Ф.1 Оп.1 Д.12)')).toEqual({ fix: false, force: false, resend: true })
+    expect(errorActions(null)).toEqual({ fix: false, force: false, resend: true })
+    expect(canResend('Шифр не определён')).toBe(false)
   })
 
   it('the errors screen renders the button for only the resendable row, and no server path', async () => {
@@ -69,9 +73,12 @@ describe('«Отправить повторно» rule (handoff §9)', () => {
     const resend = w.findAll('button').filter(b => b.text().includes('Отправить повторно'))
     expect(resend).toHaveLength(1)
     expect(resend[0]!.attributes('aria-label')).toBe('Отправить повторно: scan-4.tif')
-    expect(w.findAll('button').filter(b => b.text().includes('Исправить шифр'))).toHaveLength(4)
+    expect(w.findAll('button').filter(b => b.text().includes('Исправить шифр'))).toHaveLength(0)
+    const force = w.findAll('button').filter(b => b.text().includes('Отправить принудительно'))
+    expect(force).toHaveLength(3)
+    expect(force[0]!.attributes('aria-label')).toBe('Отправить принудительно: scan-1.tif')
     // Focus targets after a row leaves the list (review round 1 minor 6).
-    expect(w.findAll('button[data-fix-id]')).toHaveLength(4)
+    expect(w.findAll('button[data-fix-id]')).toHaveLength(3)
     for (const p of SERVER_PATHS) expect(w.html()).not.toContain(p)
     w.unmount()
   }, 30_000)

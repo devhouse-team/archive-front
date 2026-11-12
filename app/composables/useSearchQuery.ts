@@ -10,7 +10,7 @@ export const FILTER_KEYS = ['fond', 'opis', 'delo', 'year_from', 'year_to', 'lan
 export type FilterKey = typeof FILTER_KEYS[number]
 
 const NUMERIC_FILTERS: readonly FilterKey[] = ['fond', 'opis', 'delo', 'year_from', 'year_to']
-const LANGS: readonly Lang[] = ['ru', 'kk-cyrl', 'kk-latn', 'kk-arab']
+const LANGS: readonly Lang[] = ['ru', 'ru-old', 'kk-cyrl', 'kk-latn', 'kk-arab']
 const SORTS: readonly SearchSort[] = ['rel', 'date', 'shifr']
 
 /** Filter values as the UI holds them: numbers stay strings (as typed), absent = undefined. */

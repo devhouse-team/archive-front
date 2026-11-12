@@ -2,7 +2,7 @@
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { RouteLocationRaw } from 'vue-router'
 import type { ExportFormat, PageDetail } from '~/types/api'
-import { confPercent } from '~/composables/useViewer'
+import { confPercent, leafNavLabels } from '~/composables/useViewer'
 import { PAGE_STATUS, reviewStatus } from '~/utils/status'
 import { parseShifr } from '~/utils/shifr'
 
@@ -28,6 +28,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useT()
+const leafNav = computed(() => leafNavLabels(props.page))
 
 const shifr = computed(() => {
   const parts = parseShifr(props.page.delo.shifr)
@@ -80,7 +81,8 @@ const total = computed(() => props.page.words.length)
             icon="i-lucide-chevron-left"
             color="neutral"
             variant="outline"
-            :aria-label="t('viewer.context.prev')"
+            :label="leafNav.prev ?? undefined"
+            :aria-label="page.prev_leaf != null ? t('viewer.context.prevLeaf', { leaf: page.prev_leaf }) : t('viewer.context.prev')"
           />
           <UButton
             v-else
@@ -97,10 +99,12 @@ const total = computed(() => props.page.words.length)
           <UButton
             v-if="page.next_id !== null"
             :to="pageLink(page.next_id)"
-            icon="i-lucide-chevron-right"
+            :icon="leafNav.next ? undefined : 'i-lucide-chevron-right'"
+            :trailing-icon="leafNav.next ? 'i-lucide-chevron-right' : undefined"
             color="neutral"
             variant="outline"
-            :aria-label="t('viewer.context.next')"
+            :label="leafNav.next ?? undefined"
+            :aria-label="page.next_leaf != null ? t('viewer.context.nextLeaf', { leaf: page.next_leaf }) : t('viewer.context.next')"
           />
           <UButton
             v-else

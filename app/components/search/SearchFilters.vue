@@ -41,7 +41,7 @@ const docTypeItems = computed(() => [
   ...(props.facets?.doc_types ?? []).map(d => ({ label: d, value: d })),
 ])
 
-const LANG_ORDER: readonly Lang[] = ['ru', 'kk-cyrl', 'kk-latn', 'kk-arab']
+const LANG_ORDER: readonly Lang[] = ['ru', 'ru-old', 'kk-cyrl', 'kk-latn', 'kk-arab']
 const langItems = computed(() => {
   const available = props.facets?.langs ?? []
   return [

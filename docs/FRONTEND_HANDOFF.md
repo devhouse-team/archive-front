@@ -28,7 +28,8 @@ A system for the Astana city archive: **scan → automatic upload (M1) → text 
 
 | `lang` | Badge | Meaning | Direction |
 |---|---|---|---|
-| `ru` | RU | Russian (incl. pre-1918 spelling) | LTR |
+| `ru` | RU | Russian, auto-detected; pre-1918 pages are labelled `ru-old` only when an archivist sets the case language | LTR |
+| `ru-old` | RU-дореф | Russian, pre-1918 orthography; set only by an archivist as the case language override (no auto-detection) | LTR |
 | `kk-cyrl` | KK | Kazakh, Cyrillic | LTR |
 | `kk-latn` | KK-лат | Kazakh, Latin «яналиф» (1929–1940) | LTR |
 | `kk-arab` | KK-араб | Kazakh, Arabic script «төте» (before 1929) | **RTL** |
@@ -88,8 +89,8 @@ Demo accounts (password = login): `admin`, `archivist`, `operator`, `reader`.
   - Scale the boxes by `displayedWidth / width`.
   - The thumbnails `?w=80…800` keep the aspect ratio.
 - **Confidence.**
-  - `conf` per word is 0–100. A word is low-confidence when `conf < 60`; highlight it.
-  - A page is flagged `low_conf = 1` when its mean is below 75 or more than 15% of its words are low-confidence. Those pages go to the review queue.
+  - `conf` per word is 0–100. A word is low-confidence when `conf < low_word_conf` (from `GET /api/pages/{id}`; it is the threshold of that page's OCR engine: 60 for Tesseract, 96.5 for `vlm` by default); highlight it.
+  - A page is flagged `low_conf = 1` when its mean is below `LOW_PAGE_CONF` (default 75) or more than `LOW_WORDS_SHARE` (default 15%) of words are low-confidence (server-side config; per page engine; VLM_LOW_* for vlm pages). Those pages go to the review queue.
 - **Words** carry `text` (current, possibly corrected), `ocr_text` (original OCR output) and `corrected` (0/1). Group them into lines by `line` and order them by `idx`.
 - **Highlighting.**
   - `GET /api/pages/{id}?hl=<query>&fz=<0|1|2>` returns `highlight_word_ids` to box on the scan. Scroll to the first one.
@@ -135,11 +136,11 @@ Demo accounts (password = login): `admin`, `archivist`, `operator`, `reader`.
 ### 5.2 M1: upload, queue, errors, journal
 | Method | Path | Who | Params / body | Returns |
 |---|---|---|---|---|
-| POST | `/api/upload` | S | multipart: `files[]`, `workplace` (`ws1`/`ws2`), optional `fond`, `opis`, `delo` (digits) | `{saved: [relpath], workplace}` |
+| POST | `/api/upload` | S | multipart: `files[]`, `workplace` (`ws1`/`ws2`), optional `fond`, `opis`, `delo` (digits; when all three are filled they **win over the file name**: `F1_O1_D12_L009.png` + 1/1/15 → Д.15, leaf 9, `shifr_source: "folder"`) | `{saved: [relpath], workplace}` |
 | GET | `/api/m1/files` | S | `status`, `q` (name or шифр), `limit` (default 200) | file rows |
 | GET | `/api/m1/files/{id}/preview` | S | — | PNG ≤400 px, or 404/415 |
 | GET | `/api/m1/queue` | S | — | counters for the operator panel and menu badges |
-| GET | `/api/m1/check-case` | S | `fond, opis, delo` | `{found, title}`; `found: null` + `detail` if ЕАИС is down |
+| GET | `/api/m1/check-case` | S | `fond, opis, delo` | `{found, title}`; `found: null` + `detail` if ЕАИС is down. `title` is `null` for a restricted case when the user is an operator |
 | POST | `/api/m1/files/{id}/shifr` | S | `{fond, opis, delo, leaf?}` | file row, requeued («Исправить шифр») |
 | POST | `/api/m1/files/{id}/retry` | S | `{force?: bool}` | file row. On `retry` status it means «Отправить сейчас»; on `invalid` it means «Отправить повторно» |
 | POST | `/api/m1/jobs/{id}/retry` | S | — | retry a failed OCR job |
@@ -173,7 +174,7 @@ Demo accounts (password = login): `admin`, `archivist`, `operator`, `reader`.
 |---|---|---|---|---|
 | GET | `/api/dela` | R | `q` (шифр/title), `fond` | case summaries (restricted hidden for non-editors) |
 | GET | `/api/dela/{id}` | R | — | summary + `pages[]` |
-| POST | `/api/dela/{id}/ocr` | E | `{lang: "auto"\|"ru"\|"kk-cyrl"\|"kk-latn"\|"kk-arab"}` | `{queued}`. Re-OCRs the whole case and **overwrites manual corrections**, so confirm first |
+| POST | `/api/dela/{id}/ocr` | E | `{lang: "auto"\|"ru"\|"kk-cyrl"\|"kk-latn"\|"kk-arab"\|"ru-old"}` | `{queued}`. Re-OCRs the whole case and **overwrites manual corrections**, so confirm first |
 | GET | `/api/review` | E | — | pages awaiting review, worst first |
 | GET | `/api/pages/{id}` | R | `hl` (query), `fz` (0/1/2) | page + words + navigation |
 | GET | `/api/pages/{id}/image` | R | `w` (80–800 → JPEG thumbnail; none → full PNG) | image |
@@ -189,7 +190,8 @@ Demo accounts (password = login): `admin`, `archivist`, `operator`, `reader`.
  "title": "Протоколы заседаний горисполкома", "year_from": 1954, "year_to": 1954, "years": "1954",
  "fond_creator": "Акмолинский городской исполнительный комитет", "doc_type": "протоколы",
  "access": "open", "lang_override": null,
- "pages_total": 4, "pages_done": 4, "pages_failed": 0, "gaps": [4], "low_conf": 0}
+ "pages_total": 4, "pages_done": 4, "pages_failed": 0, "gaps": [4], "low_conf": 0,
+ "langs": ["ru"]}   // /api/dela items only: sorted distinct page langs (null langs skipped), same as search groups
 
 // GET /api/dela/{id} → the same fields + pages
 {"…": "…", "pages": [{"id": 9, "leaf": 1, "lang": "ru", "mean_conf": 96.0, "low_conf": 0, "reviewed": 0,
@@ -205,10 +207,11 @@ Demo accounts (password = login): `admin`, `archivist`, `operator`, `reader`.
  "cer": null, "status": "done", "updated_at": "2026-11-12 00:29:29",
  "delo": {"id": 6, "shifr": "Ф.1 Оп.1 Д.12", "title": "Протоколы заседаний горисполкома", "years": "1954",
           "access": "open", "eais_case_id": 1},
+ "low_word_conf": 60.0,
  "words": [{"id": 213, "idx": 0, "block": 1, "line": 0, "text": "ПРОТОКОЛ", "ocr_text": "ПРОТОКОЛ",
             "conf": 95.91, "x": 601, "y": 194, "w": 365, "h": 50, "corrected": 0}, "… 66 more"],
  "highlight_word_ids": [],
- "prev_id": null, "next_id": 10, "position": 1, "count": 4, "max_leaf": 5,
+ "prev_id": null, "next_id": 10, "prev_leaf": null, "next_leaf": 2, "position": 1, "count": 4, "max_leaf": 5,
  "job": {"id": 19, "last_error": null}}
 ```
 
@@ -276,9 +279,10 @@ Demo accounts (password = login): `admin`, `archivist`, `operator`, `reader`.
 | GET | `/api/users` | A | — | `[{id, username, full_name, role}]` |
 | POST | `/api/users` | A | `{username, password, role, full_name?}` | `{id}` |
 | PATCH | `/api/users/{id}` | A | `{role?, password?}` | `{ok}`; a password change logs that user out |
-| GET | `/mock-eais/api/status` | — | — | `{online, cases, files}` |
+| GET | `/mock-eais/api/status` | any session | — | `{online, cases, files}` (counts exclude restricted cases for non-editors) |
 | POST | `/mock-eais/api/status` | A | `{online: bool}` | outage switch for the demo |
-| GET | `/mock-eais/api/cases` and `/mock-eais/api/cases/{id}` | — | `fond, opis, delo` | the ЕАИС case card (the «Карточка ЕАИС» link target) |
+| POST | `/mock-eais/api/cases/{id}/files` | internal token | multipart `leaf`, `file` | `{receipt_id}`. Only the M1 uploader calls it; not for the browser (no token → 401) |
+| GET | `/mock-eais/api/cases` and `/mock-eais/api/cases/{id}` | any session | `fond, opis, delo` | the ЕАИС case card (the «Карточка ЕАИС» link target). No session → 401. Restricted cases are 404 for reader and operator, as in the main API |
 
 ## 6. Screens
 
@@ -312,14 +316,20 @@ The header shows the ЕАИС indicator (green, or red «ЕАИС недосту
 
 ## 8. Coming changes (backend work in progress)
 
-- **New OCR engine `vlm`** (a GPU vision-language model; see `docs/VLM_SELECTION.md`). The `engine` field on pages and `ocr_engine` in health can be `"vlm"`. **The word schema does not change**: the same `x, y, w, h, conf, text`.
+- **New OCR engine `vlm`** (a GPU vision-language model; see `docs/VLM_SELECTION.md`). The `engine` field on pages and `ocr_engine` in health can be `"vlm"`. With `OCR_ENGINE=auto` (health shows `"auto"`) each page has its own `engine`: `"vlm"` for Arabic script and for `ru-old` pages, `"tesseract"` otherwise; `low_word_conf` follows the page engine. If the VLM endpoint is down or not configured (`VLM_URL` empty), `kk-arab` and `ru-old` pages are retried and then fail with `status: "failed"` after `OCR_MAX_ATTEMPTS` (3) attempts, as Arabic pages already do; Tesseract pages are unaffected. **The word schema does not change**: the same `x, y, w, h, conf, text`.
 - **OCR can take longer** (a GPU cold start of 30–90 s). The page `status: "running"` may last longer, so show a progress state and keep polling.
 - **Kazakh Arabic and Latin quality improves** after fine-tuning. Nothing changes in the UI.
+
+## 8a. Шифр rules (M1)
+
+- An invalid file keeps its шифр: `fond/opis/delo/shifr` are filled when it came from the manual fields, the folder or the file name, so the fix form can be prefilled. Only a file with no resolvable шифр has `fond: null`, `shifr: ""` and the reason «Шифр не определён».
+- Manual Фонд/Опись/Дело (or a `ws1/1/1/15/` folder) beats a шифр in the file name.
+- The leaf is read only from an explicit `Л`/`L` marker (`Ф1_Оп1_Д15_Л001.png` → 1, `F1_O1_D12_L009.png` → 9) or from a purely numeric name (`004.png` → 4). `scan2024_copy.png` and `IMG_2024.png` get no leaf and take the next free one.
+- A page the user may not see and a page that does not exist both return `404 {"detail": "Страница не найдена"}` (also `/image`, `/export`).
 
 ## 9. Known gaps (backend; the UI can work around them)
 
 - A filter-only search needs a query (`error: "Введите запрос"`). Disable search until a query is typed.
-- An invalid file whose name contains a valid шифр shows an empty `shifr`.
 - «Отправить повторно» is offered even for errors that a resend cannot fix (blank page, low DPI). Hide it when `error_reason` starts with «Пустая», «Чёрная» or «Разрешение».
 - `/docs` (Swagger) needs internet; `/openapi.json` works offline.
 

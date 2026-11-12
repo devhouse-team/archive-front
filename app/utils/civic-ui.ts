@@ -34,8 +34,8 @@ export const railLinkClass = [
   'focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-white',
 ].join(' ')
 
-/** Rail group label «Қор · Фонд»: plate face, 10 px uppercase micro-label. */
-export const railGroupLabelClass = 'px-3 pt-4 pb-1 font-plate text-[10px]/5 font-medium uppercase tracking-[0.06em] text-rail-muted'
+/** Rail group label «Фонд» (Russian only since Stage 11c): plate face, 12 px uppercase. */
+export const railGroupLabelClass = 'px-3 pt-4 pb-1 font-plate text-xs/5 font-semibold uppercase tracking-[0.06em] text-rail-muted'
 
 /** Rail counter: «Ошибки» on bg-error (8.36:1), «Очередь проверки» on bg-inverted (6.81:1), white text. */
 export const railBadgeClass = 'ms-auto shrink-0 rounded-md px-2 py-0.5 text-xs font-medium text-white tabular-nums'

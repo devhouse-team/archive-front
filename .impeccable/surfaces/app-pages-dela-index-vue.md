@@ -1,14 +1,17 @@
 ---
-version: 1
+version: 2
 slug: "app-pages-dela-index-vue"
 primary_target: "app/pages/dela/index.vue"
-related_targets: ["app/components/dela/DelaTable.vue"]
+related_targets: ["app/components/dela/DelaGapsCell.vue", "app/composables/useDelaBrowse.ts"]
 ---
 
-# Surface brief — Дела (/dela)
+# Surface brief — Дела (/dela), Stage 11b: browse and pagination
 
-- **Mode:** Operate; finding a case by шифр or title. Handoff §6 #5, §2 (all roles open; restricted rows only reach EDITORS, marked 🔒). Stage 8.
-- **Job:** archivist/reader knows a шифр fragment or a title word and wants the case card in one click; operator checks how far OCR got. Success = the right row is visible within the first screen and opens with click or Enter.
-- **Direction (inside «Адрес архива»):** toolbar on `bg-default` panel: search `q` (debounced 300 ms, synced to `?q=`) + fond USelect from `/api/search/facets` fonds («Ф.1 — фондообразователь»). UTable: Шифр (compact ShifrPlate, tabular) · Название (`dir="auto"`, creator in muted 2nd line) · Годы · Языки (lang badges from page langs are not in the list payload, so this column shows `lang_override` badge or «—»; noted) · Листы `done/total` with a slim meter · Пропуски «пропущены л. 4, 7» in warning text with icon · Низкая уверенность count (warning soft badge when >0) · 🔒 badge «Ограничен» for editors only. Whole row is a link (`/dela/:id`), keyboard: the шифр cell carries a real NuxtLink so Tab/Enter work.
-- **States:** skeleton rows; empty «Дел пока нет» / filtered «Ничего не найдено» + reset; error UAlert with «Повторить».
-- **Constraints:** strings in `ru/cases.ts`; no raw palette; 36 px targets; no hint of restricted cases for non-editors (the backend filters; the UI only adds 🔒 when `isEditor`).
+- **Mode:** Operate. Archive staff aged 40–50 with little IT background. Two jobs: (1) open a case whose шифр or title word they know; (2) walk Фонд → Опись → list of дела without knowing numbers. Success = one obvious path: pick a фонд, pick an опись, read 25 rows, turn the page.
+- **Toolbar (one row at 1280):** «Шифр или название» search (flex), Фонд select (searchable, «Ф.7 — Акмолинский отдел народного образования», number typed first matches first), Опись select («Оп.2»; disabled with «Сначала выберите фонд» until a фонд is chosen), ghost «Сбросить» only when something is filtered. Any filter change resets to page 1; a фонд change clears the опись.
+- **URL is the state:** `q`, `fond`, `opis`, `page` in the query. Selects and page turns push history (back/forward restore), typing replaces. Page 1 and empty values are omitted.
+- **Count line** (top-left, muted, tabular, `role="status"`): «Показано 1–25 из 60». **UPagination** under the table, only when there is more than one page.
+- **Table, no horizontal scroll at 1280 (content ≈1012 px):** Шифр (compact plate) · Название (`dir="auto"`, creator as muted second line only when no фонд is chosen; editors get the restricted badge inside this cell, the separate Доступ column is dropped) · Годы · Языки (badges wrap in a row) · Листы «7 из 7» (+ failed soft badge) · Пропуски «нет» (dimmed) or «13 листов» — a keyboard-focusable button with a tooltip «Пропущены листы: 4, 7–8, 10–17» (ranges collapse long runs; neutral text, amber is reserved for confidence) · На проверке: plain tabular number, 0 dimmed, no chip.
+- **Option sources:** editors (admin, archivist) — `GET /api/m1/cases` (ЕАИС cascade). Operator and reader — `/api/search/facets` fonds + описи derived from `/api/dela?fond=N` (plain list, access-filtered), so a restricted-only опись never appears. ЕАИС 503 for editors → same fallback, a muted note with the server detail; the list keeps working.
+- **States:** skeleton rows on first load, old rows stay while re-querying; empty «Дел не найдено» + «Сбросить фильтры» (filtered) or «Дел пока нет»; error `UAlert` with the server `detail` and «Повторить»; a page past the end jumps to the last page.
+- **Constraints:** strings in `locales/ru/cases.ts`; semantic colours only; 36 px targets; plain list fallback paginates client-side (and filters `opis` client-side) when an older backend ignores `page`.

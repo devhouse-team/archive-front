@@ -177,6 +177,8 @@ components:
 
 # Design System: Цифровой архив Астаны
 
+> **Reversal, 2026-11-12 (Stage 11c).** The bilingual Kazakh/Russian micro-labels (ҚОР · ФОНД) are gone from the plates, and the rail group labels are Russian only («Фонд», «Обработка», «Система», 12 px). This reverses the Stage 2 choice: staff aged 40–50 found the page too noisy, and the short prefix (Ф., Оп., Д., л.) already names the level. The `kk` strings stay in `ru.ts` for a future Kazakh UI. The viewer header now uses the compact plate; detail moves under «Подробнее», «Ещё ⋯» and Правка mode. Where older text below mentions micro-labels, this note wins.
+
 Recorded on 2026-11-12 from the shipped build (Stages 3 to 9), not from intentions. Normative sources in the code are `app/assets/css/main.css` (`@theme static` scales and aliases, Nuxt UI `--ui-*` overrides, `@font-face`), `app/assets/css/focus.css`, `app/app.config.ts`, `app/utils/civic-ui.ts` and `app/utils/status.ts`. The token spec `docs/stages/2-design-system.md` holds the reasoning and the dated corrections. Where it and the code disagree, the code is what this file records. Components use **Nuxt UI semantic colours and the project aliases only** (`text-muted`, `bg-elevated`, `bg-rail`, `bg-locator`, `bg-hit`, `bg-line-band`...). Raw palette classes are banned.
 
 ## Overview

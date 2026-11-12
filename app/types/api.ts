@@ -152,6 +152,55 @@ export interface CheckCaseResult {
   detail?: string
 }
 
+/** GET /api/m1/cases (no params): one фонд in ЕАИС. */
+export interface CaseFondRow {
+  fond: number
+  fond_creator: string
+  n_opisi: number
+  n_dela: number
+}
+
+/** GET /api/m1/cases?fond=N: one опись. */
+export interface CaseOpisRow {
+  opis: number
+  n_dela: number
+}
+
+/** GET /api/m1/cases?fond=N&opis=M: one дело. `title` is null for a restricted case when the user is an operator. */
+export interface CaseDeloRow {
+  delo: number
+  title: string | null
+  year_from: number | null
+  year_to: number | null
+  access: Access
+  /** Pages already held locally. */
+  leaves: number
+}
+
+/** POST /api/m1/cases body (EDITORS, «+ Новое дело»). */
+export interface CreateCaseBody {
+  fond: number
+  opis: number
+  delo: number
+  title: string
+  year_from?: number | null
+  year_to?: number | null
+  fond_creator?: string
+  doc_type?: string
+  access?: Access
+}
+
+/** POST /api/m1/cases → 201. */
+export interface CreatedCase {
+  fond: number
+  opis: number
+  delo: number
+  title: string
+  year_from: number | null
+  year_to: number | null
+  access: Access
+}
+
 export interface ShifrBody {
   fond: number
   opis: number
@@ -210,6 +259,17 @@ export interface DeloSummary {
   low_conf: number
   /** Distinct page languages. Added by the backend on 2026-11-12; older backends omit it. */
   langs?: Lang[]
+}
+
+/**
+ * GET /api/dela with `page` (handoff §5.3, Stage 11b): one page of summaries. `total` counts only cases visible
+ * to the user; a page past the end has `items: []`. Without `page` the backend sends a plain DeloSummary[].
+ */
+export interface DelaPageResponse {
+  total: number
+  page: number
+  per_page: number
+  items: DeloSummary[]
 }
 
 export interface DeloPage {

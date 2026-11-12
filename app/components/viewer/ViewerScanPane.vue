@@ -14,6 +14,8 @@ const props = defineProps<{
   hits: ReadonlySet<number>
   drafts: ReadonlyMap<number, string>
   threshold: number
+  /** Правка mode: «Рамки слов» and the low/corrected boxes. Просмотр shows only search hits and the selection. */
+  editable?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -54,6 +56,10 @@ function zoomBy(direction: 1 | -1) {
   zoom.value = stepZoom(scale.value, direction)
 }
 
+watch(() => props.editable, (on) => {
+  if (!on) showBoxes.value = false
+})
+
 const isEdited = (w: Word) => props.drafts.has(w.id) && props.drafts.get(w.id) !== w.text
 
 interface BoxView {
@@ -63,7 +69,10 @@ interface BoxView {
   title: string
 }
 
-/** Precedence (spec 2): selected > hit > corrected > low. Plain boxes only with «Рамки слов» on. */
+/**
+ * Precedence (spec 2): selected > hit > corrected > low. Plain boxes only with «Рамки слов» on.
+ * Stage 11c: in Просмотр only the selected word and search hits are drawn; low and corrected marks are Правка tools.
+ */
 const boxes = computed<BoxView[]>(() => {
   const s = scale.value
   if (!s) return []
@@ -71,8 +80,8 @@ const boxes = computed<BoxView[]>(() => {
   for (const w of props.words) {
     const selected = w.id === props.selectedId
     const hit = props.hits.has(w.id)
-    const corrected = w.corrected === 1 || isEdited(w)
-    const low = !corrected && w.conf < props.threshold
+    const corrected = !!props.editable && (w.corrected === 1 || isEdited(w))
+    const low = !!props.editable && !corrected && w.conf < props.threshold
     if (!selected && !hit && !corrected && !low && !showBoxes.value) continue
     const b = outset(scaleBox(w, s))
     out.push({
@@ -210,9 +219,9 @@ defineExpose({ viewport, boxEl, revealSelected })
       <h2 class="text-sm font-semibold text-highlighted">
         {{ t('viewer.scan.title') }}
       </h2>
-      <span class="text-[13px] text-muted tabular-nums">{{ t('viewer.scan.leaf', { leaf }) }}</span>
       <div class="ms-auto flex flex-wrap items-center gap-x-3 gap-y-1">
         <USwitch
+          v-if="editable"
           v-model="showBoxes"
           :label="t('viewer.scan.boxes')"
           size="md"

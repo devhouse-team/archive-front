@@ -34,7 +34,7 @@ function counter(item: NavGroup['items'][number]): string | null {
       class="flex flex-col"
     >
       <p :class="railGroupLabelClass">
-        <span lang="kk">{{ t(group.labelKk) }}</span> · {{ t(group.labelRu) }}
+        {{ t(group.labelRu) }}
       </p>
       <ul class="flex flex-col gap-0.5">
         <li

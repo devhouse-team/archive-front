@@ -38,6 +38,7 @@ const ru = {
 
   nav: {
     label: 'Основное меню',
+    // Rail group labels: the rail shows `ru` only since Stage 11c (2026-11-12); `kk` is kept for a future Kazakh UI.
     groups: {
       fond: { kk: 'Қор', ru: 'Фонд' },
       processing: { kk: 'Өңдеу', ru: 'Обработка' },
@@ -203,7 +204,8 @@ const ru = {
     },
   },
 
-  // ShifrPlate micro-labels (spec 2 §ShifrPlate): Kazakh · Russian, 10 px uppercase.
+  // ShifrPlate (spec 2 §ShifrPlate). The plates show only `short`; kk/ru names are kept for a future Kazakh UI
+  // (the bilingual micro-labels were dropped in Stage 11c, 2026-11-12).
   plate: {
     fond: { kk: 'Қор', ru: 'Фонд', short: 'Ф.' },
     opis: { kk: 'Тізімдеме', ru: 'Опись', short: 'Оп.' },

@@ -15,6 +15,17 @@ export default {
       prevLeaf: 'Предыдущий лист, л.{leaf}',
       nextLeaf: 'Следующий лист, л.{leaf}',
       actions: 'Действия со страницей',
+      // Stage 11c: the calm header. Language, status and engine live under «Подробнее».
+      details: 'Подробнее',
+      detailsTitle: 'Сведения о странице',
+      lang: 'Язык',
+      status: 'Распознавание',
+      review: 'Проверка',
+      engineLabel: 'Движок',
+      more: 'Ещё',
+      moreAria: 'Ещё действия: экспорт, повторное распознавание',
+      moreExportOnly: 'Ещё действия: экспорт',
+      openCase: 'Открыть дело',
     },
     engines: {
       tesseract: 'Tesseract',
@@ -22,6 +33,7 @@ export default {
     },
     export: {
       label: 'Экспорт',
+      group: 'Скачать страницу',
       txt: 'Текст (TXT)',
       json: 'Данные (JSON)',
       hocr: 'hOCR',
@@ -57,6 +69,9 @@ export default {
       legendHit: 'найдено',
       legendCorrected: 'исправлено',
       legendHere: 'выбранное слово',
+      // Stage 11c: the one sentence shown in Просмотр.
+      toCheck: 'Слов для проверки: {count}',
+      allSure: 'Все слова распознаны уверенно',
     },
     // Scan pane
     scan: {
@@ -99,6 +114,9 @@ export default {
       // Keyboard hints: the keys are drawn as <kbd> keycaps, these are the words after them.
       hints: {
         label: 'Клавиши',
+        open: 'Подсказки по клавишам',
+        title: 'Клавиши в тексте',
+        save: 'сохранить правки',
         words: 'по словам',
         low: 'низкая уверенность',
         edit: 'изменить',

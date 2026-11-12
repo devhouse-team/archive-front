@@ -3,8 +3,10 @@ import type { RouteLocationRaw } from 'vue-router'
 import type { ShifrParts, ShifrSegment } from '~/utils/shifr'
 import { formatShifr, shifrAriaLabel, shifrSegments } from '~/utils/shifr'
 
-// Signature component (spec 2 §ShifrPlate): the archive address Ф.1 › Оп.1 › Д.15 › л.3 as enamel plates
-// with bilingual micro-labels, or the compact inline «Ф.1 Оп.1 Д.12 · л.3».
+// Signature component (spec 2 §ShifrPlate): the archive address Ф.1 › Оп.1 › Д.15 › л.3 as enamel plates,
+// or the compact inline «Ф.1 Оп.1 Д.12 · л.3». Stage 11c (2026-11-12) dropped the bilingual micro-labels
+// (ҚОР · ФОНД): the short prefix already names the level. The plate.*.kk/ru strings stay in ru.ts for a
+// future Kazakh UI.
 const props = withDefaults(defineProps<{
   shifr: ShifrParts
   variant?: 'plate' | 'compact'
@@ -14,16 +16,18 @@ const props = withDefaults(defineProps<{
   links?: Partial<Record<ShifrSegment, RouteLocationRaw>>
   /** Shortcut for links.delo = /dela/:id. */
   deloId?: number | null
-}>(), { variant: 'plate', current: undefined, links: undefined, deloId: null })
+  /** Compact variant only: makes the whole inline шифр one link (the viewer header links it to its дело). */
+  to?: RouteLocationRaw
+}>(), { variant: 'plate', current: undefined, links: undefined, deloId: null, to: undefined })
 
 const { t } = useT()
 const NuxtLink = resolveComponent('NuxtLink')
 
-const LABELS = {
-  fond: { kk: 'plate.fond.kk', ru: 'plate.fond.ru', short: 'plate.fond.short' },
-  opis: { kk: 'plate.opis.kk', ru: 'plate.opis.ru', short: 'plate.opis.short' },
-  delo: { kk: 'plate.delo.kk', ru: 'plate.delo.ru', short: 'plate.delo.short' },
-  leaf: { kk: 'plate.leaf.kk', ru: 'plate.leaf.ru', short: 'plate.leaf.short' },
+const SHORT = {
+  fond: 'plate.fond.short',
+  opis: 'plate.opis.short',
+  delo: 'plate.delo.short',
+  leaf: 'plate.leaf.short',
 } as const
 
 const ariaLabel = computed(() => shifrAriaLabel(props.shifr))
@@ -33,8 +37,7 @@ const segments = computed(() => shifrSegments(props.shifr).map((id) => {
   const to = props.links?.[id] ?? (id === 'delo' && props.deloId != null ? `/dela/${props.deloId}` : undefined)
   return {
     id,
-    labels: LABELS[id],
-    value: `${t(LABELS[id].short)}${props.shifr[id]}`,
+    value: `${t(SHORT[id])}${props.shifr[id]}`,
     to,
     current: props.current === id,
   }
@@ -48,13 +51,18 @@ const plateClass = [
 </script>
 
 <template>
-  <span
+  <component
+    :is="to ? NuxtLink : 'span'"
     v-if="variant === 'compact'"
-    class="whitespace-nowrap text-secondary tabular-nums"
+    :to="to"
+    :class="[
+      'whitespace-nowrap text-secondary tabular-nums',
+      to && 'rounded-sm underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
+    ]"
   >
     <span class="sr-only">{{ ariaLabel }}</span>
     <span aria-hidden="true">{{ compactText }}</span>
-  </span>
+  </component>
 
   <div
     v-else
@@ -77,10 +85,6 @@ const plateClass = [
         :aria-current="seg.current ? 'page' : undefined"
         :class="[plateClass, seg.to && 'transition-colors hover:bg-rail-active focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary']"
       >
-        <span
-          class="font-plate text-[10px]/3 font-medium uppercase tracking-[0.06em] text-rail-muted"
-          aria-hidden="true"
-        ><span lang="kk">{{ t(seg.labels.kk) }}</span> · {{ t(seg.labels.ru) }}</span>
         <span class="font-plate text-lg/5 font-semibold tracking-[0.02em] tabular-nums">{{ seg.value }}</span>
         <span
           v-if="seg.current"

@@ -3,12 +3,14 @@ import type { DropdownMenuItem } from '@nuxt/ui'
 import type { RouteLocationRaw } from 'vue-router'
 import type { ExportFormat, PageDetail } from '~/types/api'
 import { confPercent, leafNavLabels } from '~/composables/useViewer'
+import { langLabel } from '~/composables/useT'
 import { PAGE_STATUS, reviewStatus } from '~/utils/status'
 import { parseShifr } from '~/utils/shifr'
 
-// The page-context band (surface brief FIRST VIEWPORT): the address plate top-left, leaf navigation top-right;
-// title, years, script and status under it; actions ending in the primary «Отметить проверенной».
-// Then the confidence strip: mean, share of low words, legend.
+// The page-context band, calm version (Stage 11c, 2026-11-12). Users are archive staff with little IT background:
+// one line names the page (compact шифр, title, years, leaf navigation); one line says what needs doing
+// («Слов для проверки: N») and offers one primary action. Language, status and engine are folded under
+// «Подробнее»; export and re-OCR under «Ещё ⋯». The mean, meter, threshold and legend show in Правка only.
 const props = defineProps<{
   page: PageDetail
   threshold: number
@@ -17,6 +19,8 @@ const props = defineProps<{
   canRetry: boolean
   reviewing: boolean
   retrying: boolean
+  /** Правка mode (EDITORS only): the full confidence strip with mean, meter, threshold and legend. */
+  editable?: boolean
   /** Query kept on prev/next (mode, hl, fz). */
   navQuery: Record<string, string>
 }>()
@@ -47,11 +51,28 @@ const engine = computed(() => {
 const pageLink = (id: number): RouteLocationRaw => ({ path: `/page/${id}`, query: props.navQuery })
 
 const FORMATS: ExportFormat[] = ['txt', 'json', 'hocr', 'alto', 'pdf']
-const exportItems = computed<DropdownMenuItem[]>(() => FORMATS.map(fmt => ({
-  label: t(`viewer.export.${fmt}`),
-  icon: fmt === 'pdf' ? 'i-lucide-file-text' : 'i-lucide-file-down',
-  onSelect: () => emit('export', fmt),
-})))
+const showRetry = computed(() => props.canRetry && done.value)
+/** «Ещё ⋯»: export formats (everyone, done pages), then «Распознать заново» (STAFF). Not rendered when empty. */
+const moreItems = computed<DropdownMenuItem[][]>(() => {
+  if (!done.value) return []
+  const groups: DropdownMenuItem[][] = [[
+    { type: 'label', label: t('viewer.export.group') },
+    ...FORMATS.map(fmt => ({
+      label: t(`viewer.export.${fmt}`),
+      icon: fmt === 'pdf' ? 'i-lucide-file-text' : 'i-lucide-file-down',
+      onSelect: () => emit('export', fmt),
+    })),
+  ]]
+  if (showRetry.value) {
+    groups.push([{
+      label: t('viewer.retry.action'),
+      icon: 'i-lucide-refresh-cw',
+      disabled: props.retrying,
+      onSelect: () => emit('retry'),
+    }])
+  }
+  return groups
+})
 
 const mean = computed(() => props.page.mean_conf)
 const meterWidth = computed(() => `${Math.max(0, Math.min(100, mean.value ?? 0))}%`)
@@ -63,14 +84,34 @@ const total = computed(() => props.page.words.length)
     class="rounded-lg bg-default ring-1 ring-default"
     :aria-label="t('viewer.context.label')"
   >
-    <div class="flex flex-col gap-3 px-4 pt-4 pb-3 sm:px-5">
-      <div class="flex flex-wrap items-start justify-between gap-3">
+    <div class="flex flex-col gap-2 px-4 pt-3 pb-3 sm:px-5">
+      <!-- Line 1: which page this is. -->
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
         <ShifrPlate
           v-if="shifr"
           :shifr="shifr"
-          current="leaf"
-          :delo-id="page.delo_id"
+          variant="compact"
+          :to="`/dela/${page.delo_id}`"
+          class="font-plate text-lg/7 font-semibold tracking-[0.02em]"
         />
+        <h1
+          class="min-w-0 flex-1 basis-64 text-[22px]/7 font-semibold text-highlighted"
+          dir="auto"
+        >
+          {{ page.delo.title }}
+          <YearChip
+            :years="page.delo.years"
+            class="ms-2 align-[3px]"
+          />
+          <UBadge
+            v-if="canReview && page.delo.access === 'restricted'"
+            color="neutral"
+            variant="soft"
+            icon="i-lucide-lock"
+            :label="t('access.restricted')"
+            class="ms-2 align-[3px]"
+          />
+        </h1>
         <nav
           class="flex items-center gap-1"
           :aria-label="t('viewer.context.leafNav')"
@@ -92,7 +133,7 @@ const total = computed(() => props.page.words.length)
             disabled
             :aria-label="t('viewer.context.prev')"
           />
-          <span class="min-w-16 text-center text-sm font-semibold text-highlighted tabular-nums">
+          <span class="min-w-16 text-center text-base font-semibold text-highlighted tabular-nums">
             <span aria-hidden="true">{{ t('viewer.context.position', { position: page.position, count: page.count }) }}</span>
             <span class="sr-only">{{ t('viewer.context.positionAria', { position: page.position, count: page.count }) }}</span>
           </span>
@@ -117,72 +158,110 @@ const total = computed(() => props.page.words.length)
         </nav>
       </div>
 
-      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-        <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-          <h1
-            class="min-w-0 text-[22px]/7 font-semibold text-highlighted"
-            dir="auto"
-          >
-            {{ page.delo.title }}
-          </h1>
-          <YearChip :years="page.delo.years" />
-          <ScriptBadge
-            v-if="page.lang"
-            :lang="page.lang"
-          />
-          <UBadge
-            :color="status.color"
-            variant="soft"
-            :icon="status.icon"
-            :label="t(status.label)"
-            :ui="{ leadingIcon: page.status === 'running' ? 'animate-spin motion-reduce:animate-none' : '' }"
-          />
-          <UBadge
-            v-if="review"
-            :color="review.color"
-            variant="soft"
-            :label="t(review.label)"
-          />
-          <UBadge
-            v-if="canReview && page.delo.access === 'restricted'"
+      <!-- Line 2: what needs doing, details folded away, one primary action. -->
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <p
+          v-if="done"
+          class="flex items-center gap-2 text-base text-default"
+          data-testid="viewer-to-check"
+        >
+          <template v-if="lowCount > 0">
+            <span
+              class="legend-swatch legend-swatch--low"
+              aria-hidden="true"
+            />
+            <span class="tabular-nums">{{ t('viewer.confidence.toCheck', { count: lowCount }) }}</span>
+          </template>
+          <template v-else>
+            <UIcon
+              name="i-lucide-check"
+              class="size-4 text-muted"
+              aria-hidden="true"
+            />
+            <span>{{ t('viewer.confidence.allSure') }}</span>
+          </template>
+        </p>
+
+        <UPopover :content="{ align: 'start' }">
+          <UButton
             color="neutral"
-            variant="soft"
-            icon="i-lucide-lock"
-            :label="t('access.restricted')"
+            variant="ghost"
+            trailing-icon="i-lucide-chevron-down"
+            :label="t('viewer.context.details')"
+            data-testid="viewer-details"
+            class="text-muted"
           />
-          <span
-            v-if="engine"
-            class="text-[13px] text-muted"
-          >{{ t('viewer.context.engine', { engine }) }}</span>
-        </div>
+          <template #content>
+            <dl
+              class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-2.5 p-4 text-[15px]"
+              :aria-label="t('viewer.context.detailsTitle')"
+              data-testid="viewer-details-panel"
+            >
+              <template v-if="page.lang">
+                <dt class="text-muted">
+                  {{ t('viewer.context.lang') }}
+                </dt>
+                <dd class="flex items-center gap-2 text-default">
+                  <ScriptBadge :lang="page.lang" />
+                  <span aria-hidden="true">{{ langLabel(page.lang, true) }}</span>
+                </dd>
+              </template>
+              <dt class="text-muted">
+                {{ t('viewer.context.status') }}
+              </dt>
+              <dd>
+                <UBadge
+                  :color="status.color"
+                  variant="soft"
+                  :icon="status.icon"
+                  :label="t(status.label)"
+                  :ui="{ leadingIcon: page.status === 'running' ? 'animate-spin motion-reduce:animate-none' : '' }"
+                />
+              </dd>
+              <template v-if="review">
+                <dt class="text-muted">
+                  {{ t('viewer.context.review') }}
+                </dt>
+                <dd>
+                  <UBadge
+                    :color="review.color"
+                    variant="soft"
+                    :label="t(review.label)"
+                  />
+                </dd>
+              </template>
+              <template v-if="engine">
+                <dt class="text-muted">
+                  {{ t('viewer.context.engineLabel') }}
+                </dt>
+                <dd class="text-default">
+                  {{ engine }}
+                </dd>
+              </template>
+            </dl>
+          </template>
+        </UPopover>
 
         <div
-          class="flex flex-wrap items-center gap-2"
+          class="ms-auto flex flex-wrap items-center gap-2"
           role="group"
           :aria-label="t('viewer.context.actions')"
         >
           <UDropdownMenu
-            v-if="done"
-            :items="exportItems"
+            v-if="moreItems.length"
+            :items="moreItems"
             :content="{ align: 'end' }"
           >
             <UButton
               color="neutral"
               variant="outline"
-              icon="i-lucide-download"
-              trailing-icon="i-lucide-chevron-down"
-              :label="t('viewer.export.label')"
+              icon="i-lucide-ellipsis"
+              :loading="retrying"
+              :label="t('viewer.context.more')"
+              :aria-label="showRetry ? t('viewer.context.moreAria') : t('viewer.context.moreExportOnly')"
+              data-testid="viewer-more"
             />
           </UDropdownMenu>
-          <UButton
-            v-if="canRetry && done"
-            color="neutral"
-            variant="outline"
-            icon="i-lucide-refresh-cw"
-            :loading="retrying"
-            :label="t('viewer.retry.action')"
-            @click="emit('retry')"
-          />
           <UButton
             v-if="canReview && done"
             trailing-icon="i-lucide-arrow-right"
@@ -194,9 +273,11 @@ const total = computed(() => props.page.words.length)
       </div>
     </div>
 
+    <!-- Правка only: the full confidence strip. -->
     <div
-      v-if="done"
-      class="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-default px-4 py-2.5 text-[13px] sm:px-5"
+      v-if="done && editable"
+      class="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-default px-4 py-2.5 text-sm sm:px-5"
+      data-testid="viewer-confidence-strip"
     >
       <div class="flex items-center gap-2">
         <span class="text-muted">{{ t('viewer.confidence.mean') }}</span>
@@ -259,6 +340,7 @@ const total = computed(() => props.page.words.length)
 <style scoped>
 .legend-swatch {
   display: inline-block;
+  flex-shrink: 0;
   width: 18px;
   height: 12px;
   border-radius: 2px;

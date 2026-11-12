@@ -5,6 +5,7 @@ import type {
   PageDetail, QueueCounters, ReocrResult, ReviewedResult, ReviewItem, SavedQuery, SaveQueryBody, SaveWordsResult,
   SearchParams, SearchResponse, ShifrBody, StatsRow, UpdateUserBody, UploadResult, User, WordEdit, Workplace,
   FileStatus,
+  CaseDeloRow, CaseFondRow, CaseOpisRow, CreateCaseBody, CreatedCase,
 } from '~/types/api'
 import { toApiError } from '~/utils/api-error'
 import { translate } from '~/composables/useT'
@@ -196,6 +197,15 @@ export function createApiClient(deps: ApiDeps) {
       // sends the user to /login like every other request.
       checkCase: (fond: number, opis: number, delo: number) =>
         get<CheckCaseResult>('/api/m1/check-case', { fond, opis, delo }, 'background'),
+      // Stage 11a шифр cascade (handoff §5.2). Quiet by default: the picker shows 503/400 inline and falls back to
+      // number inputs; a 401 still goes to /login.
+      fonds: (errorMode: ErrorMode = 'background') => get<CaseFondRow[]>('/api/m1/cases', undefined, errorMode),
+      opisi: (fond: number, errorMode: ErrorMode = 'background') => get<CaseOpisRow[]>('/api/m1/cases', { fond }, errorMode),
+      cases: (fond: number, opis: number, errorMode: ErrorMode = 'background') =>
+        get<CaseDeloRow[]>('/api/m1/cases', { fond, opis }, errorMode),
+      /** EDITORS. 400/409/503 come back to the caller (the «Новое дело» modal shows them inline). */
+      createCase: (body: CreateCaseBody, errorMode: ErrorMode = 'background') =>
+        post<CreatedCase>('/api/m1/cases', body, errorMode),
       fixShifr: (id: number, body: ShifrBody) => post<M1File>(`/api/m1/files/${id}/shifr`, body),
       /** «Отправить сейчас» on a `retry` file, «Отправить повторно» on an `invalid` one. */
       retryFile: (id: number, force = false) => post<M1File>(`/api/m1/files/${id}/retry`, { force }),

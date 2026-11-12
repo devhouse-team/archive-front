@@ -6,6 +6,8 @@ import { confShown, NAV_KEYS, navigateWords } from '~/composables/useViewer'
 // The recognised text (spec 2 §LocatorPin, §Shared line grid): one tab stop with a roving tabindex.
 // ←/→ move in visual order (mirrored in RTL), ↑/↓ jump between low-confidence words, Tab leaves the pane.
 // In edit mode (EDITORS only; the page decides) Enter opens the inline editor.
+// Stage 11c (calm viewer): Просмотр shows the text only; the per-line % and the low-word stepper appear in Правка.
+// The keyboard hints sit behind a small «?» button; the keys work the same either way.
 const props = defineProps<{
   lines: ViewerLine[]
   order: Word[]
@@ -147,6 +149,17 @@ watch(() => props.editable, (on) => {
   if (!on) editingId.value = null
 })
 
+const HINTS_VIEW = [
+  { keys: ['arrowleft', 'arrowright'], label: 'viewer.text.hints.words' },
+  { keys: ['arrowup', 'arrowdown'], label: 'viewer.text.hints.low' },
+] as const
+const HINTS_EDIT = [
+  { keys: ['enter'], label: 'viewer.text.hints.edit' },
+  { keys: ['escape'], label: 'viewer.text.hints.cancel' },
+  { keys: ['meta', 'S'], label: 'viewer.text.hints.save' },
+] as const
+const hints = computed(() => props.editable ? [...HINTS_VIEW, ...HINTS_EDIT] : [...HINTS_VIEW])
+
 function lineMeta(line: ViewerLine) {
   if (line.mean < props.threshold) return { text: t('viewer.text.lineMean', { value: confShown(line.mean, props.threshold) }), cls: 'text-warning font-medium', aria: null }
   if (line.lowCount > 0) return { text: t('viewer.text.lineLow', { count: line.lowCount }), cls: 'text-muted', aria: t('viewer.text.lineLowAria', { count: line.lowCount }) }
@@ -178,26 +191,67 @@ defineExpose({ wordEl, viewport, revealWord, stepLow, root })
         {{ t('viewer.text.title') }}
       </h2>
       <div class="ms-auto flex items-center gap-1">
-        <span class="me-1 text-[13px] text-muted tabular-nums">
-          <template v-if="lowWords.length === 0">{{ t('viewer.text.lowNavNone') }}</template>
-          <template v-else>{{ t('viewer.text.lowNav', { position: lowPosition ?? '–', count: lowWords.length }) }}</template>
-        </span>
-        <UButton
-          v-if="lowWords.length > 0"
-          icon="i-lucide-arrow-up"
-          color="neutral"
-          variant="ghost"
-          :aria-label="t('viewer.text.prevLow')"
-          @click="stepLow('ArrowUp')"
-        />
-        <UButton
-          v-if="lowWords.length > 0"
-          icon="i-lucide-arrow-down"
-          color="neutral"
-          variant="ghost"
-          :aria-label="t('viewer.text.nextLow')"
-          @click="stepLow('ArrowDown')"
-        />
+        <template v-if="editable">
+          <span
+            class="me-1 text-sm text-muted tabular-nums"
+            data-testid="viewer-low-nav"
+          >
+            <template v-if="lowWords.length === 0">{{ t('viewer.text.lowNavNone') }}</template>
+            <template v-else>{{ t('viewer.text.lowNav', { position: lowPosition ?? '–', count: lowWords.length }) }}</template>
+          </span>
+          <UButton
+            v-if="lowWords.length > 0"
+            icon="i-lucide-arrow-up"
+            color="neutral"
+            variant="ghost"
+            :aria-label="t('viewer.text.prevLow')"
+            @click="stepLow('ArrowUp')"
+          />
+          <UButton
+            v-if="lowWords.length > 0"
+            icon="i-lucide-arrow-down"
+            color="neutral"
+            variant="ghost"
+            :aria-label="t('viewer.text.nextLow')"
+            @click="stepLow('ArrowDown')"
+          />
+        </template>
+        <UPopover :content="{ align: 'end' }">
+          <UButton
+            icon="i-lucide-circle-help"
+            color="neutral"
+            variant="ghost"
+            class="text-muted"
+            :aria-label="t('viewer.text.hints.open')"
+            data-testid="viewer-hints"
+          />
+          <template #content>
+            <div class="flex flex-col gap-2 p-4">
+              <p class="text-sm font-semibold text-highlighted">
+                {{ t('viewer.text.hints.title') }}
+              </p>
+              <ul
+                class="flex flex-col gap-2 text-[15px] text-default"
+                :aria-label="t('viewer.text.hints.label')"
+              >
+                <li
+                  v-for="hint in hints"
+                  :key="hint.label"
+                  class="grid grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-3"
+                >
+                  <span class="flex items-center gap-1">
+                    <UKbd
+                      v-for="key in hint.keys"
+                      :key="key"
+                      :value="key"
+                    />
+                  </span>
+                  <span>{{ t(hint.label) }}</span>
+                </li>
+              </ul>
+            </div>
+          </template>
+        </UPopover>
       </div>
     </header>
 
@@ -237,7 +291,8 @@ defineExpose({ wordEl, viewport, revealWord, stepLow, root })
           :key="line.line"
           :data-line="line.line"
           :class="[
-            'grid grid-cols-[3rem_minmax(0,1fr)_4.5rem] items-baseline px-1',
+            'grid items-baseline px-1',
+            editable ? 'grid-cols-[3rem_minmax(0,1fr)_4.5rem]' : 'grid-cols-[3rem_minmax(0,1fr)_1.5rem]',
             line.words.some(w => w.id === selectedId) && 'bg-line-band',
           ]"
         >
@@ -289,7 +344,9 @@ defineExpose({ wordEl, viewport, revealWord, stepLow, root })
             </template>
           </p>
           <span
+            v-if="editable"
             :class="['ps-2 pe-3 text-end font-sans text-[13px] leading-[inherit] tabular-nums', lineMeta(line).cls]"
+            data-testid="viewer-line-meta"
           ><bdi
             dir="ltr"
             :aria-hidden="lineMeta(line).aria ? 'true' : undefined"

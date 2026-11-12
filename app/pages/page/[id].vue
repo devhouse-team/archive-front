@@ -384,17 +384,6 @@ onBeforeUnmount(() => {
   cancelAnimationFrame(leaderRaf)
 })
 
-const HINTS_VIEW = [
-  { keys: ['arrowleft', 'arrowright'], label: 'viewer.text.hints.words' },
-  { keys: ['arrowup', 'arrowdown'], label: 'viewer.text.hints.low' },
-] as const
-const HINTS_EDIT = [
-  { keys: ['enter'], label: 'viewer.text.hints.edit' },
-  { keys: ['escape'], label: 'viewer.text.hints.cancel' },
-  { keys: ['arrowdown'], label: 'viewer.text.hints.next' },
-] as const
-const hints = computed(() => editable.value ? HINTS_EDIT : HINTS_VIEW)
-
 const selectedOcr = computed(() => {
   const w = selectedWord.value
   if (!w) return null
@@ -437,6 +426,7 @@ const selectedOcr = computed(() => {
         :can-retry="auth.isStaff"
         :reviewing="reviewing"
         :retrying="retrying"
+        :editable="editable"
         :nav-query="navQuery"
         @export="exportPage"
         @reviewed="markReviewed"
@@ -489,6 +479,7 @@ const selectedOcr = computed(() => {
             :hits="hits"
             :drafts="drafts"
             :threshold="threshold"
+            :editable="editable"
             @select="select"
             @leader-change="scheduleLeader"
           />
@@ -528,8 +519,13 @@ const selectedOcr = computed(() => {
                 />
               </UFieldGroup>
             </template>
-            <template #footer>
-              <div class="flex min-h-13 flex-wrap items-center gap-x-4 gap-y-2 border-t border-default bg-elevated/50 px-4 py-2 text-[13px]">
+            <!-- Правка only (Stage 11c): the selected word with its confidence, and the save bar. Просмотр shows
+                 the selection by the ring, the pin and the leader; the key hints are behind the pane's «?». -->
+            <template
+              v-if="editable"
+              #footer
+            >
+              <div class="flex min-h-13 flex-wrap items-center gap-x-4 gap-y-2 border-t border-default bg-elevated/50 px-4 py-2 text-sm">
                 <p
                   v-if="selectedWord"
                   class="flex min-w-0 flex-wrap items-baseline gap-x-2"
@@ -552,26 +548,7 @@ const selectedOcr = computed(() => {
                 >
                   {{ t('viewer.text.selectHint') }}
                 </p>
-                <ul
-                  class="ms-auto flex flex-wrap items-center gap-x-3 gap-y-1 text-muted"
-                  :aria-label="t('viewer.text.hints.label')"
-                >
-                  <li
-                    v-for="hint in hints"
-                    :key="hint.label"
-                    class="flex items-center gap-1"
-                  >
-                    <UKbd
-                      v-for="key in hint.keys"
-                      :key="key"
-                      :value="key"
-                      size="sm"
-                    />
-                    <span class="ms-0.5">{{ t(hint.label) }}</span>
-                  </li>
-                </ul>
                 <div
-                  v-if="editable"
                   class="ms-auto flex flex-wrap items-center justify-end gap-2"
                 >
                   <span

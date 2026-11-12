@@ -23,7 +23,7 @@ export interface NavItem {
 
 export interface NavGroup {
   id: NavGroupId
-  /** Bilingual label: Kazakh · Russian (spec 2 sketch: «Қор · Фонд»). */
+  /** Group label. The rail renders `labelRu` only (Stage 11c, 2026-11-12); `labelKk` is kept for a future Kazakh UI. */
   labelKk: MessageKey
   labelRu: MessageKey
   items: NavItem[]

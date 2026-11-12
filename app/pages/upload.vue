@@ -25,6 +25,7 @@ const workplace = ref<Workplace>(storedWorkplace === 'ws2' ? 'ws2' : 'ws1')
 watch(workplace, w => sessionStorage.setItem(WORKPLACE_KEY, w))
 const shifr = ref<ShifrInput>({ fond: '', opis: '', delo: '' })
 const showRequired = ref(false)
+const fileNameOpen = ref(false)
 const fileInput = useTemplateRef<HTMLInputElement>('fileInput')
 const dragging = ref(false)
 const uploading = ref(false)
@@ -225,7 +226,7 @@ async function sendNow(f: M1File) {
           <legend class="text-sm font-medium text-default">
             {{ t('upload.shifrTitle') }}
           </legend>
-          <p class="mb-1 text-[13px] text-muted">
+          <p class="mb-1 text-sm text-muted">
             {{ t('upload.shifrHint') }}
           </p>
           <OpsShifrFields
@@ -233,6 +234,24 @@ async function sendNow(f: M1File) {
             :show-required="showRequired"
             @check="caseCheck = $event"
           />
+          <UCollapsible v-model:open="fileNameOpen">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              :icon="fileNameOpen ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
+              :label="t('upload.fileName.toggle')"
+              class="-ms-2.5"
+              data-testid="filename-toggle"
+            />
+            <template #content>
+              <div class="flex max-w-[68ch] flex-col gap-1 pb-1 ps-1 text-sm text-default">
+                <p>{{ t('upload.fileName.body') }}</p>
+                <p class="text-muted">
+                  {{ t('upload.fileName.priority') }}
+                </p>
+              </div>
+            </template>
+          </UCollapsible>
         </fieldset>
 
         <UFormField

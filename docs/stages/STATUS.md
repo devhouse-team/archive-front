@@ -13,7 +13,7 @@ Owner: `orchestrator` agent. Plan: stages 0–10. A stage is done only with a re
 | 6 | M3 search + collections | §6 #8 Поиск, #9 Подборки | done (review PASS round 2) | 2026-11-12 |
 | 7 | M1 operator | §6 #2 Панель, #3 Загрузка, #4 Ошибки, #10 Журнал | done (review PASS round 2) | 2026-11-12 |
 | 8 | Cases, review, admin | §6 #5 Дела, #7 Очередь проверки, #11 Администрирование | done (review PASS round 2) | 2026-11-12 |
-| 9 | Harden + finish | impeccable harden/adapt/optimize/polish, finish review | todo | |
+| 9 | Harden + finish | backlog fixes (`9-brief.md`), finish review, gate | in progress | |
 | 10 | Document | DESIGN.md from shipped code, CLAUDE.md | todo | |
 
 ## Notes
@@ -30,3 +30,4 @@ Owner: `orchestrator` agent. Plan: stages 0–10. A stage is done only with a re
 - 2026-11-12: Stage 4 built (smoke 76/76 before Stage 7 edits; the rail moved off UNavigationMenu, which re-rendered 176× after sign-in). Boot long tasks (~6.5 s before /login paints) → Stage 9. Stage 4 review and the Stage 5, 6 and 8 designers started in parallel.
 - 2026-11-12: Committed and pushed `bb1106a` to origin/main at the user's request (author Nurzhan, no co-author). Local tool state, eval run logs and pycache are excluded via .gitignore. Stages 5–8 were mid-build at commit time.
 - 2026-11-12 ~06:55: **Open, needs the user.** The Stage 5 designer's login to the real backend on :8000 was denied by the permission system ("Identity Not Given"), so the viewer was verified only with in-browser mock data. The real-backend check (page 9 `?hl=мектеп`, a kk-arab page and a kk-latn page, as archivist and as reader) and the one-word edit round-trip are pending the user's OK. Not routed to another agent.
+- 2026-11-12 07:25: Stages 3–8 done and pushed (bf95260). Full gate on the whole app: typecheck 0, lint 0, test 218/218, build 0, check:offline 84 files clean, glyphs pass, `.output/public` 3.0 MB. Stage 9 started: the designer works the backlog while impeccable-finish-reviewer reviews the whole app read-only.

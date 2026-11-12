@@ -155,3 +155,16 @@ export interface LeaderGeometry {
   x2: number
   y2: number
 }
+
+export type RetryConfirmKey = 'viewer.retry.confirm' | 'viewer.retry.confirmDrafts' | 'viewer.retry.confirmBoth'
+
+/**
+ * Re-recognising a page overwrites saved corrections and drops unsaved edits, so it asks first when either
+ * exists. Returns the message key to confirm with, or null when nothing would be lost.
+ */
+export function retryConfirmKey(dirty: boolean, hasCorrected: boolean): RetryConfirmKey | null {
+  if (dirty && hasCorrected) return 'viewer.retry.confirmBoth'
+  if (dirty) return 'viewer.retry.confirmDrafts'
+  if (hasCorrected) return 'viewer.retry.confirm'
+  return null
+}

@@ -94,8 +94,8 @@ const size = computed(() => Math.max(3, value.value.length + 1))
 </template>
 
 <style scoped>
-/* Spec 2 §Confidence semantics and §LocatorPin. Plain CSS so the states compose in a fixed precedence:
-   low (amber fill + dashed warning rule) < corrected (dotted rule, replaces low) < hit fill < selected ring. */
+/* Spec 2 §Confidence semantics and §LocatorPin. Plain CSS so the states compose in a fixed precedence,
+   lowest first: low (amber fill, dashed warning rule), corrected (dotted rule, replaces low), hit fill, selected ring. */
 .viewer-word {
   cursor: pointer;
   border-bottom: 2px solid transparent;
@@ -140,3 +140,4 @@ const size = computed(() => Math.max(3, value.value.length + 1))
 :global([dir="rtl"]) .viewer-word--low {
   padding-bottom: 2px;
 }
+</style>

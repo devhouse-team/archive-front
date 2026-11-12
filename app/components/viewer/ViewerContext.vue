@@ -90,10 +90,10 @@ const total = computed(() => props.page.words.length)
             disabled
             :aria-label="t('viewer.context.prev')"
           />
-          <span
-            class="min-w-16 text-center text-sm font-semibold text-highlighted tabular-nums"
-            :aria-label="t('viewer.context.positionAria', { position: page.position, count: page.count })"
-          >{{ t('viewer.context.position', { position: page.position, count: page.count }) }}</span>
+          <span class="min-w-16 text-center text-sm font-semibold text-highlighted tabular-nums">
+            <span aria-hidden="true">{{ t('viewer.context.position', { position: page.position, count: page.count }) }}</span>
+            <span class="sr-only">{{ t('viewer.context.positionAria', { position: page.position, count: page.count }) }}</span>
+          </span>
           <UButton
             v-if="page.next_id !== null"
             :to="pageLink(page.next_id)"
@@ -177,7 +177,7 @@ const total = computed(() => props.page.words.length)
             />
           </UDropdownMenu>
           <UButton
-            v-if="canRetry && page.status !== 'running' && page.status !== 'pending'"
+            v-if="canRetry && done"
             color="neutral"
             variant="outline"
             icon="i-lucide-refresh-cw"
@@ -265,7 +265,7 @@ const total = computed(() => props.page.words.length)
   height: 12px;
   border-radius: 2px;
   border: 1px solid var(--color-ink);
-  box-shadow: 0 0 0 1px #fff;
+  box-shadow: 0 0 0 1px var(--color-halo);
 }
 
 .legend-swatch--low {

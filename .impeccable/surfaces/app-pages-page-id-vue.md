@@ -54,9 +54,10 @@ FORM: A civic wayfinding system: bilingual address plates plus a location pin wi
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
-## Unresolved
+## Resolved in Stage 5 (2026-11-12)
 
-- **Mobile view-only layout:** scan and text stacked, with a toggle.
-- **Long-running OCR state** (`vlm`, 30–90 s cold start).
+- **Mobile view-only layout:** below 1024 px the context band stacks, a full-width «Скан / Текст» tab switch shows one pane at a time (scan pane 75svh), and the leader line is hidden; the pin stays on the scan. No horizontal scroll at 375 px.
+- **Long-running OCR state** (`vlm`, 30–90 s cold start): the context band stays (plate, «распознаётся» badge with spinner, engine); the work area becomes one panel with an indeterminate meter-track bar, copy that says a VLM cold start can take a minute or two, and elapsed time. The page polls every 3 s through `usePolling` until `done` or `failed`; `failed` offers STAFF «Распознать заново».
+- **Leader route:** pin on the inline-end edge of the box, a short drop to just under the box, along the line gap to the gutter, up or down the gutter, into the text pane's left edge at the word's row. Hidden when either end is scrolled out of its pane.
 
 Tokens, fonts, overlay styles and the corrections to the sketch are in `docs/stages/2-design-system.md`. That spec wins over the sketch.

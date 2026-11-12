@@ -80,7 +80,7 @@ const boxes = computed<BoxView[]>(() => {
         hit ? 'scan-box--hit' : '',
         (selected || hit) ? 'scan-box--strong' : '',
       ],
-      title: `${props.drafts.get(w.id) ?? w.text} · ${confPercent(w.conf)} %`,
+      title: `${props.drafts.get(w.id) ?? w.text} · ${confPercent(Math.floor(w.conf))} %`,
     })
   }
   return out
@@ -195,7 +195,6 @@ defineExpose({ viewport, boxEl, revealSelected })
             color="neutral"
             :variant="zoom === 'fit' ? 'soft' : 'outline'"
             :aria-pressed="zoom === 'fit'"
-            icon="i-lucide-move-horizontal"
             :label="t('viewer.scan.fit')"
             @click="zoom = 'fit'"
           />
@@ -220,7 +219,7 @@ defineExpose({ viewport, boxEl, revealSelected })
           :width="displayedWidth"
           :height="displayedHeight"
           decoding="async"
-          class="block size-full bg-default shadow-[0_1px_3px_rgb(18_32_46/0.18)] select-none"
+          class="block size-full bg-default shadow-scan select-none"
           draggable="false"
           @load="emit('leader-change')"
           @error="imageFailed = true"
@@ -264,7 +263,7 @@ defineExpose({ viewport, boxEl, revealSelected })
   position: absolute;
   cursor: pointer;
   border: 1px solid var(--color-ink);
-  box-shadow: 0 0 0 1px #fff, inset 0 0 0 1px #fff;
+  box-shadow: 0 0 0 1px var(--color-halo), inset 0 0 0 1px var(--color-halo);
   border-radius: 2px;
 }
 
@@ -289,7 +288,7 @@ defineExpose({ viewport, boxEl, revealSelected })
   margin: -7px 0 0 -7px;
   border-radius: 9999px;
   background: var(--color-locator);
-  box-shadow: 0 0 0 1.5px var(--color-ink), 0 0 0 3px #fff;
+  box-shadow: 0 0 0 1.5px var(--color-ink), 0 0 0 3px var(--color-halo);
   pointer-events: none;
   transition: left 120ms cubic-bezier(0.16, 1, 0.3, 1), top 120ms cubic-bezier(0.16, 1, 0.3, 1);
 }

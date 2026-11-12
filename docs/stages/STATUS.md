@@ -9,7 +9,7 @@ Owner: `orchestrator` agent. Plan: stages 0–10. A stage is done only with a re
 | 2 | Visual world + design system (impeccable new-work, ui-ux-pro-max) | direction contract, token spec `2-design-system.md`, fonts — **user approval** (DESIGN.md deferred to end of Stage 5) | done (user approved; review PASS round 5) | 2026-11-12 |
 | 3 | Scaffold + plumbing | Nuxt 4 SPA, API layer, stores, middleware, mock API, locales | done (review PASS round 2) | 2026-11-12 |
 | 4 | Shell + auth | §6 #1 Login, #12 bell, app shell, header ЕАИС indicator | done (review PASS round 1) | 2026-11-12 |
-| 5 | M2 page viewer | §6 #6 Страница + impeccable finish review + `DESIGN.md` via impeccable-documenter | built; review running | |
+| 5 | M2 page viewer | §6 #6 Страница (finish review → Stage 9, `DESIGN.md` → Stage 10 under the compressed schedule) | done (review PASS round 2) | 2026-11-12 |
 | 6 | M3 search + collections | §6 #8 Поиск, #9 Подборки | done (review PASS round 2) | 2026-11-12 |
 | 7 | M1 operator | §6 #2 Панель, #3 Загрузка, #4 Ошибки, #10 Журнал | done (review PASS round 2) | 2026-11-12 |
 | 8 | Cases, review, admin | §6 #5 Дела, #7 Очередь проверки, #11 Администрирование | done (review PASS round 2) | 2026-11-12 |

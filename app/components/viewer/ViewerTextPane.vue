@@ -26,6 +26,8 @@ const emit = defineEmits<{
 const { t } = useT()
 const dir = useLangDir(() => props.lang)
 const arabic = computed(() => props.lang === 'kk-arab')
+const LANG_TAGS: Record<Lang, string> = { 'ru': 'ru', 'kk-cyrl': 'kk', 'kk-latn': 'kk-Latn', 'kk-arab': 'kk-Arab' }
+const langTag = computed(() => props.lang ? LANG_TAGS[props.lang] : undefined)
 
 const root = useTemplateRef<HTMLElement>('root')
 const viewport = useTemplateRef<HTMLElement>('viewport')
@@ -57,6 +59,13 @@ function revealWord(id: number, smooth = true) {
   const el = wordEl(id)
   const vp = viewport.value
   if (!el || !vp) return
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  // Stacked mobile layout: the pane grows with its text and the page scrolls instead.
+  if (vp.scrollHeight <= vp.clientHeight + 1) {
+    const r = el.getBoundingClientRect()
+    if (r.top < 64 || r.bottom > window.innerHeight - 24) el.scrollIntoView({ block: 'center', behavior: smooth && !reduceMotion ? 'smooth' : 'auto' })
+    return
+  }
   const er = el.getBoundingClientRect()
   const vr = vp.getBoundingClientRect()
   const margin = 48
@@ -70,7 +79,7 @@ function announce(id: number) {
   const i = props.order.findIndex(w => w.id === id)
   const w = props.order[i]
   if (!w) return
-  const params = { n: i + 1, total: props.order.length, conf: confPercent(w.conf) }
+  const params = { n: i + 1, total: props.order.length, conf: confPercent(Math.floor(w.conf)) }
   announcement.value = t(isLow(w) ? 'viewer.text.announceLow' : 'viewer.text.announce', params)
 }
 
@@ -78,6 +87,12 @@ watch(() => props.selectedId, (id) => {
   if (id === null) return
   announce(id)
   nextTick(() => revealWord(id))
+})
+
+// The page selects the first search hit before this pane mounts: scroll to it, without announcing it.
+onMounted(() => {
+  const id = props.selectedId
+  if (id !== null) nextTick(() => revealWord(id, false))
 })
 
 function select(id: number, focus: boolean) {
@@ -133,9 +148,9 @@ watch(() => props.editable, (on) => {
 })
 
 function lineMeta(line: ViewerLine) {
-  if (line.mean < props.threshold) return { text: t('viewer.text.lineMean', { value: confPercent(line.mean) }), cls: 'text-warning font-medium', aria: null }
+  if (line.mean < props.threshold) return { text: t('viewer.text.lineMean', { value: confPercent(Math.floor(line.mean)) }), cls: 'text-warning font-medium', aria: null }
   if (line.lowCount > 0) return { text: t('viewer.text.lineLow', { count: line.lowCount }), cls: 'text-muted', aria: t('viewer.text.lineLowAria', { count: line.lowCount }) }
-  return { text: t('viewer.text.lineMean', { value: confPercent(line.mean) }), cls: 'text-dimmed', aria: null }
+  return { text: t('viewer.text.lineMean', { value: confPercent(Math.floor(line.mean)) }), cls: 'text-dimmed', aria: null }
 }
 
 let raf = 0
@@ -213,7 +228,7 @@ defineExpose({ wordEl, viewport, revealWord, stepLow, root })
         role="group"
         :aria-label="t('viewer.text.label')"
         :dir="dir"
-        :lang="lang === 'ru' ? 'ru' : 'kk'"
+        :lang="langTag"
         :class="arabic ? 'font-arabic text-lg leading-[30px]' : 'text-base leading-6'"
         @keydown="onKeydown"
       >
@@ -272,7 +287,10 @@ defineExpose({ wordEl, viewport, revealWord, stepLow, root })
           </p>
           <span
             :class="['ps-2 pe-3 text-end font-sans text-[13px] leading-[inherit] tabular-nums', lineMeta(line).cls]"
-          ><span :aria-hidden="lineMeta(line).aria ? 'true' : undefined">{{ lineMeta(line).text }}</span><span
+          ><bdi
+            dir="ltr"
+            :aria-hidden="lineMeta(line).aria ? 'true' : undefined"
+          >{{ lineMeta(line).text }}</bdi><span
             v-if="lineMeta(line).aria"
             class="sr-only"
           >{{ lineMeta(line).aria }}</span></span>

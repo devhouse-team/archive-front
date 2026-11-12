@@ -30,6 +30,7 @@ const pathStyle = computed(() => ({ d: `path('${d.value}')` }))
       :class="['leader', animate && 'leader--animate']"
     >
       <path
+        :d="d"
         :style="pathStyle"
         fill="none"
         stroke="var(--color-locator)"
@@ -38,6 +39,7 @@ const pathStyle = computed(() => ({ d: `path('${d.value}')` }))
         stroke-linecap="round"
       />
       <path
+        :d="d"
         :style="pathStyle"
         fill="none"
         stroke="var(--color-ink)"

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ExportFormat, Fuzzy, PageDetail } from '~/types/api'
 import type { LeaderGeometry } from '~/composables/useViewer'
-import { changedEdits, confPercent, groupLines, isRecognising, lowThreshold, readingOrder } from '~/composables/useViewer'
+import { changedEdits, confPercent, groupLines, isRecognising, lowThreshold, readingOrder, retryConfirmKey } from '~/composables/useViewer'
 import { useAuthStore } from '~/stores/auth'
 import { ACCESS } from '~/utils/access'
 import { isApiError } from '~/utils/api-error'
@@ -52,6 +52,8 @@ const selectedWord = computed(() => order.value.find(w => w.id === selectedId.va
 
 let loadToken = 0
 async function load(initial: boolean) {
+  // The route changes before this screen unmounts on the way out: never react to another screen's URL.
+  if (!route.path.startsWith('/page/')) return
   const id = pageId.value
   if (!Number.isInteger(id) || id <= 0) {
     raise('notFound')
@@ -101,8 +103,11 @@ const clock = usePolling(() => {
 }, 1000, { immediate: false })
 poll.stop()
 clock.stop()
-watch(recognising, (on) => {
+const recognitionNotice = ref('')
+watch(recognising, (on, was) => {
+  if (was && !on && page.value?.status === 'done') recognitionNotice.value = t('viewer.running.done')
   if (on) {
+    recognitionNotice.value = ''
     if (!waitStarted.value) waitStarted.value = Date.now()
     now.value = Date.now()
     poll.start()
@@ -174,8 +179,13 @@ function discard() {
 defineShortcuts({
   meta_s: {
     usingInput: true,
-    handler: () => {
-      if (editable.value && dirty.value) void save()
+    handler: async () => {
+      if (!editable.value) return
+      // An open inline editor commits on blur; take its word into the save.
+      const active = document.activeElement
+      if (active instanceof HTMLInputElement && active.classList.contains('viewer-word-input')) active.blur()
+      await nextTick()
+      if (dirty.value) void save()
     },
   },
 })
@@ -209,13 +219,23 @@ const modeItems = computed(() => [
   { label: t('viewer.text.modeView'), value: 'view' },
   { label: t('viewer.text.modeEdit'), value: 'edit' },
 ])
+// Reka tabs fire the setter on focus and on click: ignore repeats while a switch is in flight, so the
+// discard confirmation (onBeforeRouteUpdate) appears once.
+// A cancelled switch also swallows the repeat that arrives from the same click (mousedown, then click).
+let modeSwitching = false
+let modeSettledAt = 0
 const mode = computed({
   get: () => editable.value ? 'edit' : 'view',
   set: (value: string) => {
+    if (modeSwitching || Date.now() - modeSettledAt < 400 || value === (editable.value ? 'edit' : 'view')) return
     const query = { ...route.query }
     if (value === 'edit') query.mode = 'edit'
     else delete query.mode
-    void router.replace({ query })
+    modeSwitching = true
+    void router.replace({ query }).finally(() => {
+      modeSwitching = false
+      modeSettledAt = Date.now()
+    })
   },
 })
 
@@ -247,7 +267,8 @@ async function markReviewed() {
 const retrying = ref(false)
 async function retryPage() {
   if (!page.value || retrying.value) return
-  if (page.value.words.some(w => w.corrected === 1) && !window.confirm(t('viewer.retry.confirm'))) return
+  const key = retryConfirmKey(dirty.value, page.value.words.some(w => w.corrected === 1))
+  if (key && !window.confirm(t(key))) return
   retrying.value = true
   try {
     await api.pages.retry(page.value.id)
@@ -280,6 +301,15 @@ const paneItems = computed(() => [
   { label: t('viewer.panes.scan'), value: 'scan', icon: 'i-lucide-image' },
   { label: t('viewer.panes.text'), value: 'text', icon: 'i-lucide-text' },
 ])
+watch(pane, (value) => {
+  nextTick(() => {
+    const id = selectedId.value
+    if (id === null) return
+    if (value === 'text') textPane.value?.revealWord(id, false)
+    else scanPane.value?.revealSelected(false)
+    scheduleLeader()
+  })
+})
 const isDesktop = ref(true)
 let mql: MediaQueryList | null = null
 function onMql() {
@@ -288,8 +318,8 @@ function onMql() {
 }
 
 const work = useTemplateRef<HTMLElement>('work')
-const scanPane = useTemplateRef<{ viewport: HTMLElement | null, boxEl: (id: number) => HTMLElement | null }>('scanPane')
-const textPane = useTemplateRef<{ viewport: HTMLElement | null, wordEl: (id: number) => HTMLElement | null, root: HTMLElement | null }>('textPane')
+const scanPane = useTemplateRef<{ viewport: HTMLElement | null, boxEl: (id: number) => HTMLElement | null, revealSelected: (smooth?: boolean) => void }>('scanPane')
+const textPane = useTemplateRef<{ viewport: HTMLElement | null, wordEl: (id: number) => HTMLElement | null, root: HTMLElement | null, revealWord: (id: number, smooth?: boolean) => void }>('textPane')
 const leader = ref<LeaderGeometry | null>(null)
 
 function inside(r: DOMRect, v: DOMRect) {
@@ -368,6 +398,13 @@ const selectedOcr = computed(() => {
 
 <template>
   <div class="flex min-h-full flex-col gap-4 lg:h-full lg:min-h-0">
+    <p
+      role="status"
+      aria-live="polite"
+      class="sr-only"
+    >
+      {{ recognitionNotice }}
+    </p>
     <!-- Loading -->
     <template v-if="loading && !page">
       <div
@@ -462,6 +499,7 @@ const selectedOcr = computed(() => {
                 :items="modeItems"
                 :content="false"
                 :aria-label="t('viewer.text.modeLabel')"
+                activation-mode="manual"
                 size="md"
                 :ui="{ trigger: 'min-h-9' }"
               />
@@ -482,7 +520,7 @@ const selectedOcr = computed(() => {
                     class="text-muted"
                     dir="auto"
                   >{{ t('viewer.text.ocrWas', { text: selectedOcr }) }}</span>
-                  <span class="text-muted tabular-nums">· {{ t('viewer.text.selectedConf', { value: confPercent(selectedWord.conf) }) }}</span>
+                  <span class="text-muted tabular-nums">· {{ t('viewer.text.selectedConf', { value: confPercent(Math.floor(selectedWord.conf)) }) }}</span>
                 </p>
                 <p
                   v-else
@@ -495,7 +533,7 @@ const selectedOcr = computed(() => {
                 </p>
                 <div
                   v-if="editable"
-                  class="flex w-full flex-wrap items-center justify-end gap-2 xl:w-auto"
+                  class="ms-auto flex flex-wrap items-center justify-end gap-2"
                 >
                   <span
                     v-if="dirty"

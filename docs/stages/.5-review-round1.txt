@@ -1,0 +1,17 @@
+## Verdict: FAIL
+Counts: critical 0, major 1, minor 10
+
+1. [major] app/pages/page/[id].vue:252 — «Распознать заново» confirms only when saved corrections exist but always clears drafts (line 257). Unsaved edits are lost with no prompt, one mis-click from «Отметить проверенной». Fix: confirm on dirty || corrected.
+2. [minor] [id].vue:214-221 — the discard confirm shows twice on a mouse click to «Просмотр».
+3. [minor] [id].vue:120-124 — every load sends 2× GET /api/pages/:id.
+4. [minor] ViewerTextPane.vue:79-83 — the text pane never scrolls to the initial hl hit; on mobile the hit is below the fold.
+5. [minor] [id].vue:176-183 — ⌘/Ctrl+S with the editor open doesn't save the word being typed.
+6. [minor] ViewerLeader.vue:19,32-46 — no `d` attribute, so WebKit draws no leader.
+7. [minor] confidence floored to integers while the vlm threshold shows one decimal (96,5).
+8. [minor] ViewerScanPane.vue:222,266,291, ViewerContext.vue:268 — raw #fff halo and raw rgb shadow; should be tokens.
+9. [minor] [id].vue:472-533 — the save toast covers the edit footer.
+10. [minor] ViewerRecognition.vue:25-56 — the running→done transition is not announced.
+11. [minor] [id].vue:414-421,462-469 — UTabs with content=false: role=tab with no tabpanels.
+
+Verified live (Playwright-routed mock, 0 requests to :8000): box scaling at fit, 100 %, 125 % and after resize; dual-tone overlays; first hit selected and scrolled on the scan; one tab stop, roving keys, RTL mirrored, no trap; live region; Enter/Esc with focus return; the PATCH has only changed words; save toast; ocr_text tooltip; unsaved guard; reviewed → next_review_id and the empty-queue toast; export; kk-arab rtl, lang, Naskh, 30 px rows, line numbers inline-start; pin/leader aria-hidden; plate лист aria-current; lock for editors only and the reader 404 identical; operator gets no edit affordances; vlm polling to done, stops on leave; states; 375 px OK; AA; source scan clean.
+Checks: typecheck 0, eslint (Stage 5) 0, test/viewer 17/17.

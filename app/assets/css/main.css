@@ -120,6 +120,9 @@
   --color-meter-track: var(--color-slate-200);
   --color-lowconf-fill: var(--color-amber-100);
   --color-eais-ok: var(--color-green-500);
+  /* Stage 5: white halo of the two-tone scan overlays, and the paper lift of the scan image. */
+  --color-halo: #FFFFFF;
+  --shadow-scan: 0 1px 3px rgb(18 32 46 / 0.18);
 
   --font-sans: "Fira Sans", "Noto Sans Variable", "Noto Naskh Arabic Variable", system-ui, sans-serif;
   --font-plate: "Fira Sans Condensed", "Fira Sans", "Noto Sans Variable", sans-serif;

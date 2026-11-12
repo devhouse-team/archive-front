@@ -39,3 +39,5 @@
 - [ ] Collections store: «already added» only knows this tab's adds, and `n` isn't decremented on removal. Refresh from the server (`stores/collections.ts:56-63`).
 - [ ] Search: a `creator` from the URL can only be cleared via «Сбросить фильтры». Add its own clear button (`SearchFilters.vue:215-220`).
 - [ ] Search: the past-end status note flashes before the auto-redirect (`search.vue:104-107`). Optional.
+- [ ] Viewer mobile: on the default «Скан» tab the first hl box is below the fold at 375 px. Also scroll the window (`ViewerScanPane.vue:95-111`).
+- [ ] Viewer: the mode-switch guard uses a 400 ms timing window. Simplify to the `modeSwitching` flag (`[id].vue:222-240`).

@@ -1,0 +1,11 @@
+## Verdict: PASS
+Counts: critical 0, major 0, minor 5
+
+1. [minor] ViewerScanPane.vue:95-111 — minor 4 partly fixed: at 375 px the default «Скан» tab still has the first hl box below the fold (y 809 of 812). Scroll the window too on mobile.
+2. [minor] ViewerTextPane.vue:82,151-153 — round 1 #7: integer flooring next to a fractional vlm threshold.
+3. [minor] [id].vue:222-240 — the double-confirm fix relies on a 400 ms timing window; simplify to the modeSwitching flag.
+4. [minor] [id].vue:451-458,497-505 — round 1 #11: UTabs without tabpanels.
+5. [minor] [id].vue:510-570 — round 1 #9: save toast over the footer (not re-checked).
+
+Major verified live: «Распознать заново» confirms for drafts only, for corrections only and for both; cancel sends no POST and keeps the drafts; accept sends exactly one POST. Minors 2, 4 (text pane), 5, 6, 8 and 10 verified. Minor 3 (double GET) withdrawn: 1 GET measured per load and per leaf navigation. 0 requests to :8000 (Playwright-routed mock).
+Checks: eslint (Stage 5) 0, test/viewer 19/19.
